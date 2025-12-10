@@ -1,0 +1,109 @@
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup {
+  background: white;
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  border: 4px solid #f4c542;
+  text-align: center;
+  max-width: 500px;
+  animation: popupFadeIn 0.5s ease-out;
+  position: relative;
+}
+
+.popup::before {
+  content: "🎉";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+}
+
+.popup h2 {
+  margin-bottom: 20px;
+  font-size: 32px;
+  color: #1f3c88;
+  font-weight: 700;
+}
+
+.popup-winner {
+  font-size: 32px;
+  font-weight: bold;
+  color: #ffd700; /* Vàng sáng */
+  margin-bottom: 30px;
+  animation: glowGold 1.5s ease-in-out infinite;
+  text-shadow:
+    0 0 8px #fff,
+    0 0 15px #fff4b2,
+    0 0 25px #ffd700,
+    0 0 40px #ffc107;
+}
+
+@keyframes glowGold {
+  0%, 100% {
+    opacity: 1;
+    text-shadow:
+      0 0 8px #fff,
+      0 0 15px #fff4b2,
+      0 0 25px #ffd700,
+      0 0 40px #ffc107;
+  }
+  50% {
+    opacity: 0.9;
+    text-shadow:
+      0 0 10px #fff,
+      0 0 20px #ffe066,
+      0 0 30px #ffc107,
+      0 0 45px #ffca2c;
+  }
+}
+
+.popup button {
+  padding: 12px 24px;
+  background-color: #f4c542;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 16px;
+  color: #1f3c88;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.popup button:hover {
+  background-color: #e5b933;
+}
+
+@keyframes popupFadeIn {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 5px #28a745, 0 0 10px #28a745;
+  }
+  50% {
+    text-shadow: 0 0 15px #28a745, 0 0 25px #28a745;
+  }
+}
