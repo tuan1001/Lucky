@@ -4,13 +4,13 @@ import confetti from "canvas-confetti";
 import './LuckyDrawWheel.css';
 
 const data = [
-  { option: 'Nguyễn Văn A' },
-  { option: 'Trần Thị B' },
-  { option: 'Lê Văn C' },
-  { option: 'Phạm Thị D' },
-  { option: 'Hoàng Văn E' },
-  { option: 'Đặng Thị F' },
-  { option: 'Vũ Văn G' },
+  { option: 'Nguyễn Minh Tuấn' },
+  { option: 'Nguyễn Việt Anh' },
+  { option: 'Hà Phương Nhung' },
+  { option: 'Nguyễn Tuấn Anh' },
+  { option: 'Ngô Anh Tuấn' },
+  { option: 'Đỗ Việt Phương' },
+  { option: 'Nguyễn Đức Minh' },
   // 👉 Thêm nhiều người vào đây nếu cần
 ];
 
@@ -82,7 +82,7 @@ const LuckyDrawWheel = () => {
           style={{ width: "120px", marginBottom: "20px" }}
         />
 
-        <h1 style={{ color: "#1f3c88" }}>🌟 Vòng Quay May Mắn 🌟</h1>
+        <h1 style={{ color: "#1f3c88" }}>🌟 Lucky Draw 🌟</h1>
 
         {/* CLICK TRỰC TIẾP VÀO VÒNG QUAY */}
         <div
@@ -122,7 +122,7 @@ const LuckyDrawWheel = () => {
       {showPopup && winner && (
         <div className="popup-overlay" onClick={() => setShowPopup(false)}>
           <div className="popup" onClick={(e) => e.stopPropagation()}>
-            <h2>🎉 Chúc mừng! 🎉</h2>
+            <h2>🎉 Congratulation! 🎉</h2>
             <p className="popup-winner">{winner}</p>
           </div>
         </div>
