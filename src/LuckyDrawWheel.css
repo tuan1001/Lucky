@@ -1,74 +1,144 @@
-/* === VÒNG QUAY HOVER === */
 .wheel-container {
-  display: inline-block;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-}
-.wheel-container:hover {
-  transform: scale(1.04) rotate(1deg);
-  /*box-shadow: 0 0 20px rgba(244, 197, 66, 0.6);*/
+  position: relative;
+  width: 500px;   /* kích thước gốc */
+  height: 500px;
+  margin: 0 auto;
+  transform: scale(6.0); /* phóng to vòng quay */
+  transform-origin: center center;
 }
 
-/* === POPUP OVERLAY === */
+.center-circle {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  background: white;
+  border: 4px solid #1f3c88;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
 .popup-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0,0,0,0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
 }
 
-/* === POPUP CHÍNH === */
 .popup {
-  background: #fff;
-  padding: 30px 40px;
-  border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
-  min-width: 300px;
-  max-width: 400px;
-  animation: fadeIn 0.3s ease-in-out;
+  position: relative;
+  background: #ffffff;
+  padding: 40px 60px 40px 60px;
+  border-radius: 18px;
+  min-width: 450px;
+  min-height: 250px;     /* giúp giữ khung đều */
+  text-align: center;    /* 👈 Căn giữa toàn bộ chữ */
+  display: flex;         /* 👈 Dùng Flex để căn giữa chuẩn */
+  flex-direction: column;
+  align-items: center;   /* 👈 Căn giữa ngang */
+  justify-content: center; /* 👈 Căn giữa dọc */
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  animation: popupShow 0.25s ease-out;
+  transform: scale(3.0);
 }
 
 .popup h2 {
-  margin-bottom: 16px;
-  color: #1f3c88;
+  margin: 0;
+  margin-bottom: 12px; 
+  font-size: 28px;
+  z-index: 2;
 }
 
 .popup-winner {
-  font-size: 26px;
-  font-weight: bold;
-  color: #f4c542;
-  margin-bottom: 30px;
-  animation: glowGold 1.5s ease-in-out infinite;
-  text-shadow:
-    0 0 8px #fff,
-    0 0 15px #fff4b2,
-    0 0 25px #ffd700,
-    0 0 40px #ffc107;
+  font-size: 36px;
+  font-weight: 800;
+  color: #1f3c88;
+  z-index: 2;
 }
 
-/* === ANIMATIONS === */
-@keyframes glowGold {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.9;
-  }
-}
+.scale-wheel {
 
-@keyframes fadeIn {
+  transform-origin: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+@keyframes popupShow {
   from {
+    transform: scale(0.7);
     opacity: 0;
-    transform: scale(0.9);
   }
   to {
+    transform: scale(1.25);
     opacity: 1;
-    transform: scale(1);
   }
+}
+.wheel-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.wheel-wrapper {
+  position: relative;
+  width: 660px;
+  height: 660px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wheel-blur-rectangle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 660px;
+  height: 660px;
+  background: rgba(12, 10, 10, 0.2);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.wheel-title {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 32px;
+  font-weight: bold;
+  color: #ffd700;
+  z-index: 2;
+  text-shadow: 1px 1px 2px white;
+}
+.wheel-logo {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  z-index: 2;
+}
+.wheel-center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;         /* 👈 Có thể điều chỉnh */
+  height: 80px;
+  background-color: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }

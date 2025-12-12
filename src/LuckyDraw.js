@@ -1,142 +1,205 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Wheel } from "react-custom-roulette";
 import confetti from "canvas-confetti";
-import './LuckyDrawWheel.css';
-
-const SHEET_JSON_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqzm35Gflupe0h9AfH5mUVogncOXSJE4Esv2SdxiCjTJRAwCivHsECJZCxmjvLxOH9jDOky3nx_-mU/gviz/tqx?out=json";
+import * as XLSX from "xlsx";
+import "./LuckyDrawWheel.css";
 
 const LuckyDrawWheel = () => {
-  const [data, setData] = useState([]);
+  const [fullData, setFullData] = useState([]);      // 200 người thật
+  const [displayData, setDisplayData] = useState([]); // 50 người hiển thị
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
   const [winner, setWinner] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
 
-  const spinAudio = useRef(new Audio("/audio/spin.mp3"));
+  const spinAudio = useRef(new Audio("/sound.mp3"));
 
-  // ✅ Fetch data từ Google Sheets
-  useEffect(() => {
-    fetch(SHEET_JSON_URL)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substr(47).slice(0, -2));
-        const rows = json.table.rows;
-
-        const sheetData = rows.map(r => ({
-          code: r.c[0]?.v || "",
-          name: r.c[1]?.v || ""
-        })).filter(item => item.code && item.name);
-
-        setData(sheetData);
-      })
-      .catch(err => console.error("Lỗi tải Sheet:", err));
-  }, []);
-
-  const handleSpinClick = () => {
-    const newPrizeNumber = Math.floor(Math.random() * data.length);
-    setPrizeNumber(newPrizeNumber);
-    setMustSpin(true);
-    setWinner(null);
-    setShowPopup(false);
-
-    if (spinAudio.current) {
-      spinAudio.current.currentTime = 0;
-      spinAudio.current.play();
-    }
+  // ===== chọn ngẫu nhiên 50 người để hiển thị =====
+  const pickRandom50 = (arr) => {
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, 150);
   };
 
-  const launchConfetti = () => {
-    const duration = 4000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+  // ============================
+  //  📄 Load Excel Local (200 người)
+  // ============================
+  useEffect(() => {
+    fetch("/employees.xlsx")
+      .then((res) => res.arrayBuffer())
+      .then((buffer) => {
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-    const interval = setInterval(() => {
-      const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) return clearInterval(interval);
-      confetti(Object.assign({}, defaults, {
-        particleCount: 60,
-        origin: {
-          x: Math.random(),
-          y: Math.random() * 0.6
-        }
-      }));
+        const formatted = jsonData
+          .map((row) => ({
+            code:
+              row.code ||
+              row.Code ||
+              row["Mã nhân viên"] ||
+              row["Mã"] ||
+              row["ID"] ||
+              "",
+            name:
+              row.name ||
+              row.Name ||
+              row["Họ tên"] ||
+              row["Tên"] ||
+              "",
+          }))
+          .filter((x) => x.code && x.name);
+
+        setFullData(formatted);
+        setDisplayData(pickRandom50(formatted));
+      });
+  }, []);   // 👈 chạy 1 lần DUY NHẤT
+  useEffect(() => {
+    if (!showPopup) return;
+
+    const duration = 2500;
+    const end = Date.now() + duration;
+
+    const fire = () => {
+      confetti({
+        particleCount: 25,
+        spread: 360,
+        startVelocity: 45,
+        ticks: 60,
+        scalar: 1.2,
+        origin: { x: 0.5, y: 0.7 },
+        zIndex: 9999,
+      });
+
+      if (Date.now() < end) requestAnimationFrame(fire);
+    };
+
+    fire();
+  }, [showPopup]);
+  // ============================
+  //  🎡 CLICK để quay
+  // ============================
+  const handleSpinClick = () => {
+    if (mustSpin || fullData.length === 0) return;
+
+    // random từ danh sách 200 người
+    const newPrize = Math.floor(Math.random() * fullData.length);
+
+    setPrizeNumber(newPrize);
+    setWinner(null);
+    setShowPopup(false);
+    setMustSpin(true);
+
+    spinAudio.current.currentTime = 0;
+    spinAudio.current.play();
+  };
+
+  // ============================
+  //  🎉 PHÁO HOA
+  // ============================
+  const launchConfetti = () => {
+    const duration = 3500;
+    const end = Date.now() + duration;
+
+    const timer = setInterval(() => {
+      if (Date.now() > end) return clearInterval(timer);
+
+      confetti({
+        particleCount: 80,
+        startVelocity: 40,
+        spread: 360,
+        ticks: 60,
+        origin: { x: Math.random(), y: Math.random() * 0.5 },
+      });
     }, 250);
   };
 
-  const wheelData = data.map(item => ({ option: item.code }));
+  // chỉ hiển thị 50 người
+  const wheelData = displayData.map((item) => ({ option: item.code }));
 
   return (
-    <>
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "rgba(255,255,255,0.3)",
-          backdropFilter: "blur(30px)",
-          border: "1px solid rgba(255,215,0,0.35)",
-          padding: "36px",
-          borderRadius: "22px",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
-          maxWidth: "700px",
-          width: "90%",
-          textAlign: "center",
-          fontFamily: "'Segoe UI', sans-serif",
-          zIndex: 10
-        }}
-      >
-        <img
-          src="/Logo.png"
-          alt="Logo HIT"
-          style={{ width: "120px", marginBottom: "20px" }}
-        />
+  <>
+    {/* ✅ Overlay mờ nền */}
+    <div className="blur-overlay"></div>
 
-        <h1 style={{ color: "#1f3c88" }}>🌟 Vòng Quay May Mắn 🌟</h1>
+    <div
+      style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        background: "rgba(255,255,255,0.3)",
+        backdropFilter: "blur(30px)",
+        border: "1px solid rgba(255,215,0,0.35)",
+        borderRadius: "22px",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        width: "900px",
+        height: "900px",
+        padding: "36px",
+        textAlign: "center",
+        fontFamily: "'Segoe UI', sans-serif",
+        zIndex: 10,
+      }}
+    >
+      <img
+        src="/Logo.png"
+        alt="Logo"
+        style={{ width: "120px", marginBottom: "20px" }}
+      />
 
-        <div
-          className={`wheel-container ${mustSpin ? 'spinning' : ''}`}
-          onClick={() => { if (!mustSpin) handleSpinClick(); }}
-        >
-          <Wheel
-            mustStartSpinning={mustSpin}
-            prizeNumber={prizeNumber}
-            data={wheelData}
-            backgroundColors={['#f4c542', '#1f3c88']}
-            textColors={['#fff']}
-            radiusLineWidth={1}
-            outerBorderWidth={4}
-            outerBorderColor="#fff"
-            fontSize={16}
-            onStopSpinning={() => {
-              setMustSpin(false);
-              const winnerData = data[prizeNumber];
-              setWinner(winnerData);
-              setShowPopup(true);
-              launchConfetti();
+      <h1 style={{ color: "#1f3c88" }}>🌟 Lucky Draw 🌟</h1>
 
-              if (spinAudio.current) {
-                spinAudio.current.pause();
-                spinAudio.current.currentTime = 0;
-              }
-            }}
-          />
+      {fullData.length === 0 && (
+        <p style={{ color: "#b00", fontWeight: "bold" }}>
+          ⏳ Đang tải danh sách từ Excel...
+        </p>
+      )}
+
+      {fullData.length > 0 && (
+        <div className="wheel-container" onClick={() => !mustSpin && handleSpinClick()}>
+        <div className="wheel-wrapper">
+          <div className="wheel-blur-rectangle"></div>
+          <h2 className="wheel-title">🎯 Lucky Draw 🎯</h2>
+
+    <Wheel
+      mustStartSpinning={mustSpin}
+      prizeNumber={prizeNumber % 50}
+      data={wheelData}
+      backgroundColors={["#f4c542", "#1f3c88", "#881f1fff", "#1f882bff"]}
+      textColors={["#fff"]}
+      textDistance={93}
+      radius={300}
+      fontSize={7}
+      radiusLineWidth={0.5}
+      outerBorderWidth={1}
+      outerBorderColor="#fff"
+      onStopSpinning={() => {
+        setMustSpin(false);
+        const result = fullData[prizeNumber];
+        setWinner(result);
+        setShowPopup(true);
+        launchConfetti();
+        spinAudio.current.pause();
+        spinAudio.current.currentTime = 0;
+      }}
+    />
+    <div className="wheel-center-circle"></div>
+  </div>
+</div>
+      )}
+    </div>
+
+    {showPopup && winner && (
+      <div className="popup-overlay" onClick={() => setShowPopup(false)}>
+        <div className="popup" onClick={(e) => e.stopPropagation()}>
+          <canvas id="popup-fireworks"></canvas>
+          <h2>🎉 Chúc mừng! 🎉</h2>
+          <p className="popup-winner">
+            {winner.code} – {winner.name}
+          </p>
         </div>
       </div>
-
-      {showPopup && winner && (
-        <div className="popup-overlay" onClick={() => setShowPopup(false)}>
-          <div className="popup" onClick={(e) => e.stopPropagation()}>
-            <h2>🎉 Chúc mừng! 🎉</h2>
-            <p className="popup-winner">
-              {winner.code} - {winner.name}
-            </p>
-          </div>
-        </div>
-      )}
-    </>
-  );
+    )}
+  </>
+);
 };
 
 export default LuckyDrawWheel;
