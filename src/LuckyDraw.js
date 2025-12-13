@@ -16,7 +16,7 @@ const LuckyDrawWheel = () => {
 
   // ===== chọn ngẫu nhiên 50 người để hiển thị =====
   const pickRandom50 = (arr) => {
-    return [...arr].sort(() => Math.random() - 0.5).slice(0, 150);
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, 130);
   };
 
   // ============================
@@ -157,20 +157,45 @@ const LuckyDrawWheel = () => {
         <div className="wheel-container" onClick={() => !mustSpin && handleSpinClick()}>
         <div className="wheel-wrapper">
           <div className="wheel-blur-rectangle"></div>
-          <h2 className="wheel-title">🎯 Lucky Draw 🎯</h2>
 
     <Wheel
+      pointerProps={{
+        style: {
+          position: "absolute",
+          top: "30%",
+          left: "94%",
+          transform: "translateY(-50%)",
+          width: "40px",
+          height: "40px",
+          backgroundColor: "transparent",
+          zIndex: 10,
+        },
+        children: (
+          <svg
+            viewBox="0 0 100 100"
+            width="24"
+            height="24"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ transform: "rotate(180deg)" }}
+          >
+            <path
+              d="M50,0 C77,0 100,23 100,50 C100,77 77,100 50,100 C23,100 0,77 0,50 C0,23 23,0 50,0 Z"
+              fill="#e74c3c"
+            />
+          </svg>
+        ),
+      }}
       mustStartSpinning={mustSpin}
       prizeNumber={prizeNumber % 50}
       data={wheelData}
-      backgroundColors={["#f4c542", "#1f3c88", "#881f1fff", "#1f882bff"]}
+      backgroundColors={["#eeb211", "#3369e8", "#d50f25", "#009925"]}
       textColors={["#fff"]}
       textDistance={93}
       radius={300}
       fontSize={7}
-      radiusLineWidth={0.5}
+      radiusLineWidth={0.0}
       outerBorderWidth={1}
-      outerBorderColor="#fff"
+      outerBorderColor="#dce2daff"
       onStopSpinning={() => {
         setMustSpin(false);
         const result = fullData[prizeNumber];
@@ -181,7 +206,10 @@ const LuckyDrawWheel = () => {
         spinAudio.current.currentTime = 0;
       }}
     />
-    <div className="wheel-center-circle"></div>
+    <div className="wheel-center-circle">
+ <p className="wheel-center-text">Lucky Draw</p>
+
+    </div>
   </div>
 </div>
       )}
