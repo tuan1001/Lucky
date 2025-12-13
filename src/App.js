@@ -1,13 +1,19 @@
 import React from "react";
 import LuckyDraw from "./LuckyDraw";
+import LuckyDrawRevert from  "./LuckyDrawResevert";
 
 function App() {
   return (
-    <div style={{ textAlign: "center"}}>
-    
-      <LuckyDraw />
-    </div>
+    <>
+      {/* ===== BACKGROUND 4K ===== */}
+      <div className="bg-fullscreen" />
+      <div className="bg-overlay" />
+
+      {/* ===== SAFE ZONE ===== */}
+      <div className="safe-zone">
+        <LuckyDraw />
+      </div>
+    </>
   );
 }
-
 export default App;

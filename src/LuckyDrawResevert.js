@@ -4,13 +4,13 @@ import confetti from "canvas-confetti";
 import * as XLSX from "xlsx";
 import "./LuckyDrawWheel.css";
 
-/* ===== CƠ CẤU GIẢI ===== */
+/* ===== CƠ CẤU GIẢI (CHIỀU NGƯỢC) ===== */
 const PRIZES = [
-  { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
-  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 },
-  { key: "second",  label: "Second Prize (Giải Nhì)", quantity: 4 },
-  { key: "third",   label: "Third Prize (Giải Ba)", quantity: 8 },
   { key: "bonus",   label: "Consolation Prize (Khuyến Khích)", quantity: 20 },
+  { key: "third",   label: "Third Prize (Giải Ba)", quantity: 8 },
+  { key: "second",  label: "Second Prize (Giải Nhì)", quantity: 4 },
+  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 },
+  { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
 ];
 
 const PRIZE_COLOR_CLASS = {
@@ -20,6 +20,7 @@ const PRIZE_COLOR_CLASS = {
   third: "core-purple",
   bonus: "core-silver",
 };
+
 const LuckyDrawWheel = () => {
   const [fullData, setFullData] = useState([]);
   const [displayData, setDisplayData] = useState([]);
@@ -34,17 +35,19 @@ const LuckyDrawWheel = () => {
   const [currentPrizeIndex, setCurrentPrizeIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
 
-
   const spinAudio = useRef(new Audio("/sound.mp3"));
 
-  /* ===== Load Excel ===== */
+  /* ===== LOAD EXCEL ===== */
   useEffect(() => {
     fetch("/employees.xlsx")
       .then((res) => res.arrayBuffer())
       .then((buffer) => {
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) return;
+
         const jsonData = XLSX.utils.sheet_to_json(sheet);
+        if (!Array.isArray(jsonData)) return;
 
         const formatted = jsonData
           .map((row) => ({
@@ -65,13 +68,14 @@ const LuckyDrawWheel = () => {
           .filter((x) => x.code && x.name);
 
         setFullData(formatted);
-        setDisplayData(formatted); // ban đầu tất cả đều được quay
-      });
+        setDisplayData(formatted);
+      })
+      .catch(console.error);
   }, []);
 
   const currentPrize = PRIZES[currentPrizeIndex];
 
-  /* ===== Popup confetti ===== */
+  /* ===== CONFETTI POPUP ===== */
   useEffect(() => {
     if (!showPopup) return;
 
@@ -90,17 +94,16 @@ const LuckyDrawWheel = () => {
     fire();
   }, [showPopup]);
 
-  /* ===== Spin ===== */
+  /* ===== CLICK SPIN ===== */
   const handleSpinClick = () => {
     if (mustSpin || displayData.length === 0) return;
 
-    setHasStarted(true);   // 👈 DÒNG QUAN TRỌNG
-    setMustSpin(true);
-
     if (!currentPrize) {
-      alert("🎉 Đã quay xong tất cả giải!");
+      alert("🎉 All prizes have been drawn!");
       return;
     }
+
+    setHasStarted(true);
 
     const index = Math.floor(Math.random() * displayData.length);
     setPrizeNumber(index);
@@ -118,12 +121,11 @@ const LuckyDrawWheel = () => {
       <div className="blur-overlay"></div>
 
       <div className="main-container">
-      
         <div className="lucky-draw-layout">
-          {/* ================= Wheel ================= */}
+          {/* ================= WHEEL ================= */}
           <div
             className={`wheel-container ${mustSpin ? "spinning" : ""}`}
-            onClick={() => !mustSpin && handleSpinClick()}
+            onClick={handleSpinClick}
           >
             <div className="wheel-wrapper">
               <div className="wheel-blur-rectangle"></div>
@@ -158,11 +160,7 @@ const LuckyDrawWheel = () => {
                     },
                     children: (
                       <div className={`pointer-svg ${mustSpin ? "spin" : ""}`}>
-                        <svg
-                          viewBox="0 0 100 100"
-                          width="30"
-                          height="30"
-                        >
+                        <svg viewBox="0 0 100 100" width="30" height="30">
                           <path
                             d="M50,0 C78,0 100,22 100,50 C100,78 78,100 50,100 C22,100 0,78 0,50 C0,22 22,0 50,0 Z"
                             fill="#e74c3c"
@@ -181,7 +179,7 @@ const LuckyDrawWheel = () => {
                     setWinner(result);
                     setShowPopup(true);
 
-                    // ✅ Lưu theo giải
+                    // ✅ LƯU THEO GIẢI
                     setWinnersByPrize((prev) => {
                       const list = prev[prize.key] || [];
                       return {
@@ -190,16 +188,19 @@ const LuckyDrawWheel = () => {
                       };
                     });
 
-                    // ❌ Loại khỏi danh sách quay tiếp
+                    // ❌ LOẠI KHỎI DANH SÁCH QUAY
                     setDisplayData((prev) =>
                       prev.filter((_, i) => i !== prizeNumber)
                     );
 
-                    // 👉 kiểm tra đủ số lượng giải
+                    // 👉 ĐỦ SỐ LƯỢNG → CHUYỂN GIẢI
                     const count =
                       (winnersByPrize[prize.key]?.length || 0) + 1;
+
                     if (count >= prize.quantity) {
-                      setCurrentPrizeIndex((i) => i + 1);
+                      setCurrentPrizeIndex((i) =>
+                        Math.min(i + 1, PRIZES.length - 1)
+                      );
                     }
 
                     spinAudio.current.pause();
@@ -207,56 +208,55 @@ const LuckyDrawWheel = () => {
                   }}
                 />
               ) : (
-                <p className="loading-text">⏳ Đang tải vòng quay...</p>
+                <p className="loading-text">⏳ Loading...</p>
               )}
 
+              {/* ===== CENTER 3D ===== */}
               <div className="wheel-center-circle level-3d">
                 <div className="wheel-center-ring">
                   <div
                     className={`wheel-center-core ${
-                      PRIZE_COLOR_CLASS[PRIZES[currentPrizeIndex]?.key] || ""
+                      PRIZE_COLOR_CLASS[currentPrize?.key] || ""
                     }`}
                   >
                     <div className="wheel-center-text-wrap">
                       {!hasStarted ? (
-                        /* ===== LÚC CHƯA QUAY ===== */
-                        <img src="/logo1.png" alt="Logo" className="wheel-center-logo"/>
-                      ) : (
-                        /* ===== ĐANG QUAY / ĐÃ QUAY ===== */
-                        <>
-                       
-                          <div className="wheel-center-prize">
-                            <div className="prize-en">
-                              {PRIZES[currentPrizeIndex]?.label?.split("(")[0]?.trim()}
-                            </div>
-                            <div className="prize-vi">
-                              ({PRIZES[currentPrizeIndex]?.label?.split("(")[1]}
-                            </div>
+                        <img
+                          src="/logo1.png"
+                          alt="Logo"
+                          className="wheel-center-logo"
+                        />
+                      ) : currentPrize ? (
+                        <div className="wheel-center-prize">
+                          <div className="prize-en">
+                            {currentPrize.label.split("(")[0].trim()}
                           </div>
-
-                        </>
+                          <div className="prize-vi">
+                            ({currentPrize.label.split("(")[1]}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="prize-en">Completed</div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-
-
+              {/* ===== END CENTER ===== */}
             </div>
           </div>
 
-          {/* ================= Result Table ================= */}
+          {/* ================= RESULT ================= */}
           <div className="result-panel">
             <h3>📋 Lucky Draw Results</h3>
 
             {PRIZES.map((p) => (
-              <div key={p.key} style={{ marginBottom: 16 }}>
+              <div key={p.key} style={{ marginBottom: 18 }}>
                 <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
                   🏆 {p.label} ({p.quantity})
                 </h4>
 
-                {(!winnersByPrize[p.key] ||
-                  winnersByPrize[p.key].length === 0) && (
+                {!winnersByPrize[p.key]?.length && (
                   <p className="empty-text">None</p>
                 )}
 
@@ -271,7 +271,7 @@ const LuckyDrawWheel = () => {
         </div>
       </div>
 
-      {/* ================= Popup ================= */}
+      {/* ================= POPUP ================= */}
       {showPopup && winner && (
         <div className="popup-overlay" onClick={() => setShowPopup(false)}>
           <div className="popup" onClick={(e) => e.stopPropagation()}>

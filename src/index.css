@@ -1,14 +1,42 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   font-family: 'Segoe UI', sans-serif;
-  background: url('bk.jpg') no-repeat center top;
-  background-size: cover; /* 👈 BẮT BUỘC */
-  background-attachment: fixed;
-  min-height: 100vh; /* 👈 BẮT BUỘC */
 }
 
+/* ===== BACKGROUND FULL SCREEN ===== */
+.bg-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  background-image: url("bk.jpg");
+  background-repeat: no-repeat;
+
+  /* ✅ PHỦ KÍN MÀN HÌNH */
+  background-size: cover;
+
+  /* 👇 căn giữa, ưu tiên phần trên */
+  background-position: center 15%;
+}
+
+/* ===== LỚP TỐI NHẸ (CHO UI NỔI) ===== */
+.bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.12),
+    rgba(0,0,0,0.12)
+  );
+}
+
+@media (min-width: 3000px) {
+  .bg-fullscreen {
+    background-position: center 25%;
+  }
 }
