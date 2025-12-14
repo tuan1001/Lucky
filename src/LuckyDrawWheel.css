@@ -406,7 +406,8 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   animation: prizeFadeIn 0.6s ease;
-}
+  color: #1f3c88; /* xanh sáng hơn */}
+
 
 @keyframes prizeFadeIn {
   from {

@@ -33,6 +33,7 @@ const PRIZE_DISPLAY_ORDER = [
 const LuckyDrawWheel = () => {
   const [fullData, setFullData] = useState([]);
   const [displayData, setDisplayData] = useState([]);
+  const [spinPool, setSpinPool] = useState([]);     // 250 người để quay
 
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
@@ -54,10 +55,7 @@ const LuckyDrawWheel = () => {
       .then((buffer) => {
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!sheet) return;
-
         const jsonData = XLSX.utils.sheet_to_json(sheet);
-        if (!Array.isArray(jsonData)) return;
 
         const formatted = jsonData
           .map((row) => ({
@@ -65,23 +63,26 @@ const LuckyDrawWheel = () => {
               row.code ||
               row.Code ||
               row["Mã nhân viên"] ||
-              row["Mã"] ||
               row["ID"] ||
               "",
             name:
               row.name ||
               row.Name ||
               row["Họ tên"] ||
-              row["Tên"] ||
               "",
           }))
           .filter((x) => x.code && x.name);
 
+        // 🔹 250 người thật
         setFullData(formatted);
-        setDisplayData(formatted);
-      })
-      .catch(console.error);
+        setSpinPool(formatted);
+
+        // 🔹 RANDOM 200 người để HIỂN THỊ
+        const shuffled = [...formatted].sort(() => Math.random() - 0.5);
+        setDisplayData(shuffled.slice(0, 150));
+      });
   }, []);
+
 
   const currentPrize = PRIZES[currentPrizeIndex];
 
@@ -107,7 +108,7 @@ const LuckyDrawWheel = () => {
   /* ===== CLICK SPIN ===== */
   const handleSpinClick = () => {
     if (mustSpin || displayData.length === 0) return;
-
+    if (spinPool.length === 0) return;
     // 🔒 ĐÃ QUAY XONG TOÀN BỘ
     if (isFinished) {
       alert("🎉 All prizes have been drawn!");
@@ -116,7 +117,7 @@ const LuckyDrawWheel = () => {
 
     setHasStarted(true);
 
-    const index = Math.floor(Math.random() * displayData.length);
+    const index = Math.floor(Math.random() * spinPool.length);
     setPrizeNumber(index);
     setMustSpin(true);
     setShowPopup(false);
@@ -199,7 +200,7 @@ const LuckyDrawWheel = () => {
                     setMustSpin(false);
 
                     const prize = PRIZES[currentPrizeIndex];
-                    const result = displayData[prizeNumber];
+                    const result = spinPool[prizeNumber];
                     if (!result || !prize) return;
 
                     setWinner(result);
@@ -266,7 +267,7 @@ const LuckyDrawWheel = () => {
                             {currentPrize.label.split("(")[0].trim()}
                           </div>
                           <div className="prize-vi">
-                            {currentPrize.label.split("(")[1]}
+                            ({currentPrize.label.split("(")[1]}
                           </div>
                         </div>
                       ) : (
