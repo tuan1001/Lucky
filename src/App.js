@@ -11,7 +11,7 @@ function App() {
 
       {/* ===== SAFE ZONE ===== */}
       <div className="safe-zone">
-        <LuckyDraw />
+        <LuckyDrawRevert />
       </div>
     </>
   );

@@ -9,7 +9,7 @@ const PRIZES = [
   { key: "bonus",   label: "Consolation Prize (Khuyến Khích)", quantity: 20 },
   { key: "third",   label: "Third Prize (Giải Ba)", quantity: 8 },
   { key: "second",  label: "Second Prize (Giải Nhì)", quantity: 4 },
-  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 },
+  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 }, 
   { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
 ];
 
@@ -20,6 +20,15 @@ const PRIZE_COLOR_CLASS = {
   third: "core-purple",
   bonus: "core-silver",
 };
+
+// Thứ tự hiển thị bảng kết quả (từ cao xuống thấp)
+const PRIZE_DISPLAY_ORDER = [
+  "special",
+  "first",
+  "second",
+  "third",
+  "bonus",
+];
 
 const LuckyDrawWheel = () => {
   const [fullData, setFullData] = useState([]);
@@ -34,8 +43,9 @@ const LuckyDrawWheel = () => {
   const [winnersByPrize, setWinnersByPrize] = useState({});
   const [currentPrizeIndex, setCurrentPrizeIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
-  const spinAudio = useRef(new Audio("/sound.mp3"));
+  const spinAudio = useRef(new Audio("/sound2.mp3"));
 
   /* ===== LOAD EXCEL ===== */
   useEffect(() => {
@@ -98,7 +108,8 @@ const LuckyDrawWheel = () => {
   const handleSpinClick = () => {
     if (mustSpin || displayData.length === 0) return;
 
-    if (!currentPrize) {
+    // 🔒 ĐÃ QUAY XONG TOÀN BỘ
+    if (isFinished) {
       alert("🎉 All prizes have been drawn!");
       return;
     }
@@ -113,13 +124,28 @@ const LuckyDrawWheel = () => {
     spinAudio.current.currentTime = 0;
     spinAudio.current.play();
   };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Space hoặc Enter
+      if ((e.code === "Space" || e.code === "Enter") && !mustSpin) {
+        e.preventDefault(); // ❌ chặn scroll
+        handleSpinClick();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      };
+    }, [mustSpin, handleSpinClick]);
 
   const wheelData = displayData.map((i) => ({ option: i.code }));
 
   return (
     <>
       <div className="blur-overlay"></div>
-
+      
       <div className="main-container">
         <div className="lucky-draw-layout">
           {/* ================= WHEEL ================= */}
@@ -174,12 +200,12 @@ const LuckyDrawWheel = () => {
 
                     const prize = PRIZES[currentPrizeIndex];
                     const result = displayData[prizeNumber];
-                    if (!result) return;
+                    if (!result || !prize) return;
 
                     setWinner(result);
                     setShowPopup(true);
 
-                    // ✅ LƯU THEO GIẢI
+                    // ✅ LƯU KẾT QUẢ THEO GIẢI
                     setWinnersByPrize((prev) => {
                       const list = prev[prize.key] || [];
                       return {
@@ -188,19 +214,25 @@ const LuckyDrawWheel = () => {
                       };
                     });
 
-                    // ❌ LOẠI KHỎI DANH SÁCH QUAY
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH
                     setDisplayData((prev) =>
                       prev.filter((_, i) => i !== prizeNumber)
                     );
 
-                    // 👉 ĐỦ SỐ LƯỢNG → CHUYỂN GIẢI
+                    // ===== 👇 CHỐT LOGIC GIẢI Ở ĐÂY 👇 =====
                     const count =
                       (winnersByPrize[prize.key]?.length || 0) + 1;
 
+                    // 🔒 GIẢI ĐẶC BIỆT → KẾT THÚC
+                    if (prize.key === "special" && count >= prize.quantity) {
+                      setIsFinished(true);
+                      setCurrentPrizeIndex(null); // không còn giải
+                      return;
+                    }
+
+                    // 👉 CHƯA PHẢI GIẢI CUỐI → SANG GIẢI TIẾP
                     if (count >= prize.quantity) {
-                      setCurrentPrizeIndex((i) =>
-                        Math.min(i + 1, PRIZES.length - 1)
-                      );
+                      setCurrentPrizeIndex((i) => i + 1);
                     }
 
                     spinAudio.current.pause();
@@ -221,18 +253,20 @@ const LuckyDrawWheel = () => {
                   >
                     <div className="wheel-center-text-wrap">
                       {!hasStarted ? (
-                        <img
-                          src="/logo1.png"
-                          alt="Logo"
-                          className="wheel-center-logo"
-                        />
+                        <div className="wheel-center-logo-wrap">
+                          <img
+                            src="/logo3.png"
+                            alt="Logo"
+                            className="wheel-center-logo"
+                          />
+                        </div>
                       ) : currentPrize ? (
                         <div className="wheel-center-prize">
                           <div className="prize-en">
                             {currentPrize.label.split("(")[0].trim()}
                           </div>
                           <div className="prize-vi">
-                            ({currentPrize.label.split("(")[1]}
+                            {currentPrize.label.split("(")[1]}
                           </div>
                         </div>
                       ) : (
@@ -250,23 +284,33 @@ const LuckyDrawWheel = () => {
           <div className="result-panel">
             <h3>📋 Lucky Draw Results</h3>
 
-            {PRIZES.map((p) => (
-              <div key={p.key} style={{ marginBottom: 18 }}>
-                <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
-                  🏆 {p.label} ({p.quantity})
-                </h4>
+            {PRIZE_DISPLAY_ORDER.map((key) => {
+                const p = PRIZES.find(prize => prize.key === key);
+                if (!p) return null;
 
-                {!winnersByPrize[p.key]?.length && (
-                  <p className="empty-text">None</p>
-                )}
+                return (
+                  <div key={p.key} style={{ marginBottom: 20 }}>
+                    <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
+                      🏆 {p.label} ({p.quantity})
+                    </h4>
 
-                {winnersByPrize[p.key]?.map((w, i) => (
-                  <div key={i} style={{ fontSize: 14, padding: "4px 0" }}>
-                    {i + 1}. {w.code} – {w.name}
+                    {(!winnersByPrize[p.key] ||
+                      winnersByPrize[p.key].length === 0) && (
+                      <p className="empty-text">None</p>
+                    )}
+
+                    {winnersByPrize[p.key]?.map((w, i) => (
+                      <div
+                        key={i}
+                        style={{ fontSize: 15, padding: "6px 0" }}
+                      >
+                        {i + 1}. {w.code} – {w.name}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
+                );
+              })}
+
           </div>
         </div>
       </div>
