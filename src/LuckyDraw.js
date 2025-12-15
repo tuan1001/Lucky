@@ -146,6 +146,7 @@ const LuckyDrawWheel = () => {
                   radiusLineWidth={0}
                   outerBorderWidth={1}
                   outerBorderColor="#dce2daff"
+                 
                   pointerProps={{
                     style: {
                       position: "absolute",
@@ -204,6 +205,7 @@ const LuckyDrawWheel = () => {
 
                     spinAudio.current.pause();
                     spinAudio.current.currentTime = 0;
+                    
                   }}
                 />
               ) : (

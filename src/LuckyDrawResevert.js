@@ -175,6 +175,7 @@ const LuckyDrawWheel = () => {
                   radiusLineWidth={0}
                   outerBorderWidth={1}
                   outerBorderColor="#dce2daff"
+                  spinDuration={1.3}
                   pointerProps={{
                     style: {
                       position: "absolute",
