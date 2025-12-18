@@ -46,7 +46,7 @@ const LuckyDrawWheel = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
-  const spinAudio = useRef(new Audio("/sound2.mp3"));
+  const spinAudio = useRef(new Audio("sound2.mp3"));
 
   /* ===== LOAD EXCEL ===== */
   useEffect(() => {
