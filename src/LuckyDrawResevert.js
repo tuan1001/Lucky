@@ -6,10 +6,10 @@ import "./LuckyDrawWheel.css";
 
 /* ===== CƠ CẤU GIẢI (CHIỀU NGƯỢC) ===== */
 const PRIZES = [
-  { key: "bonus",   label: "Consolation Prize (Khuyến Khích)", quantity: 20 },
-  { key: "third",   label: "Third Prize (Giải Ba)", quantity: 8 },
-  { key: "second",  label: "Second Prize (Giải Nhì)", quantity: 4 },
-  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 }, 
+  { key: "bonus", label: "Consolation Prize (Khuyến Khích)", quantity: 16 },
+  { key: "third", label: "Third Prize (Giải Ba)", quantity: 8 },
+  { key: "second", label: "Second Prize (Giải Nhì)", quantity: 4 },
+  { key: "first", label: "First Prize (Giải Nhất)", quantity: 2 },
   { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
 ];
 
@@ -138,15 +138,15 @@ const LuckyDrawWheel = () => {
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      };
-    }, [mustSpin, handleSpinClick]);
+    };
+  }, [mustSpin, handleSpinClick]);
 
   const wheelData = displayData.map((i) => ({ option: i.code }));
 
   return (
     <>
       <div className="blur-overlay"></div>
-      
+
       <div className="main-container">
         <div className="lucky-draw-layout">
           {/* ================= WHEEL ================= */}
@@ -249,9 +249,8 @@ const LuckyDrawWheel = () => {
               <div className="wheel-center-circle level-3d">
                 <div className="wheel-center-ring">
                   <div
-                    className={`wheel-center-core ${
-                      PRIZE_COLOR_CLASS[currentPrize?.key] || ""
-                    }`}
+                    className={`wheel-center-core ${PRIZE_COLOR_CLASS[currentPrize?.key] || ""
+                      }`}
                   >
                     <div className="wheel-center-text-wrap">
                       {!hasStarted ? (
@@ -287,31 +286,31 @@ const LuckyDrawWheel = () => {
             <h3>📋 Lucky Draw Results</h3>
 
             {PRIZE_DISPLAY_ORDER.map((key) => {
-                const p = PRIZES.find(prize => prize.key === key);
-                if (!p) return null;
+              const p = PRIZES.find(prize => prize.key === key);
+              if (!p) return null;
 
-                return (
-                  <div key={p.key} style={{ marginBottom: 20 }}>
-                    <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
-                      🏆 {p.label} ({p.quantity})
-                    </h4>
+              return (
+                <div key={p.key} style={{ marginBottom: 20 }}>
+                  <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
+                    🏆 {p.label} ({p.quantity})
+                  </h4>
 
-                    {(!winnersByPrize[p.key] ||
-                      winnersByPrize[p.key].length === 0) && (
+                  {(!winnersByPrize[p.key] ||
+                    winnersByPrize[p.key].length === 0) && (
                       <p className="empty-text">None</p>
                     )}
 
-                    {winnersByPrize[p.key]?.map((w, i) => (
-                      <div
-                        key={i}
-                        style={{ fontSize: 15, padding: "6px 0" }}
-                      >
-                        {i + 1}. {w.code} – {w.name}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+                  {winnersByPrize[p.key]?.map((w, i) => (
+                    <div
+                      key={i}
+                      style={{ fontSize: 15, padding: "6px 0" }}
+                    >
+                      {i + 1}. {w.code} – {w.name}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
 
           </div>
         </div>
