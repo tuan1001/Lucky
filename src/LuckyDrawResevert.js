@@ -201,39 +201,40 @@ const LuckyDrawWheel = () => {
                     setMustSpin(false);
 
                     const prize = PRIZES[currentPrizeIndex];
-                    const result = spinPool[prizeNumber];
-                    if (!result || !prize) return;
 
-                    setWinner(result);
+                    // 🎯 LẤY NGƯỜI TRÚNG CHUẨN XÁC (từ pool quay)
+                    const winnerItem = spinPool[prizeNumber];
+                    if (!winnerItem) return;
+
+                    setWinner(winnerItem);
                     setShowPopup(true);
 
-                    // ✅ LƯU KẾT QUẢ THEO GIẢI
-                    setWinnersByPrize((prev) => {
-                      const list = prev[prize.key] || [];
-                      return {
-                        ...prev,
-                        [prize.key]: [...list, result],
-                      };
-                    });
+                    // 🎉 LƯU NGƯỜI TRÚNG THEO GIẢI
+                    setWinnersByPrize((prev) => ({
+                      ...prev,
+                      [prize.key]: [...(prev[prize.key] || []), winnerItem],
+                    }));
 
-                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH
-                    setDisplayData((prev) =>
-                      prev.filter((_, i) => i !== prizeNumber)
-                    );
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI POOL QUAY
+                    setSpinPool((prev) => prev.filter((p) => p.code !== winnerItem.code));
 
-                    // ===== 👇 CHỐT LOGIC GIẢI Ở ĐÂY 👇 =====
-                    const count =
-                      (winnersByPrize[prize.key]?.length || 0) + 1;
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH DISPLAY
+                    setDisplayData((prev) => prev.filter((p) => p.code !== winnerItem.code));
 
-                    // 🔒 GIẢI ĐẶC BIỆT → KẾT THÚC
-                    if (prize.key === "special" && count >= prize.quantity) {
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH GỐC
+                    setFullData((prev) => prev.filter((p) => p.code !== winnerItem.code));
+
+                    // 🎯 KIỂM TRA ĐÃ ĐỦ SỐ NGƯỜI CỦA GIẢI HIỆN TẠI CHƯA?
+                    const awarded = (winnersByPrize[prize.key]?.length || 0) + 1;
+
+                    // 👉 Nếu giải cuối (special) → kết thúc
+                    if (prize.key === "special" && awarded >= prize.quantity) {
                       setIsFinished(true);
-                      setCurrentPrizeIndex(null); // không còn giải
                       return;
                     }
 
-                    // 👉 CHƯA PHẢI GIẢI CUỐI → SANG GIẢI TIẾP
-                    if (count >= prize.quantity) {
+                    // 👉 Nếu đủ số lượng giải → chuyển sang giải tiếp theo
+                    if (awarded >= prize.quantity) {
                       setCurrentPrizeIndex((i) => i + 1);
                     }
 
