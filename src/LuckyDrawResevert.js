@@ -6,10 +6,10 @@ import "./LuckyDrawWheel.css";
 
 /* ===== CƠ CẤU GIẢI (CHIỀU NGƯỢC) ===== */
 const PRIZES = [
-  { key: "bonus",   label: "Consolation Prize (Khuyến Khích)", quantity: 20 },
-  { key: "third",   label: "Third Prize (Giải Ba)", quantity: 8 },
-  { key: "second",  label: "Second Prize (Giải Nhì)", quantity: 4 },
-  { key: "first",   label: "First Prize (Giải Nhất)", quantity: 2 }, 
+  { key: "bonus", label: "Consolation Prize (Khuyến Khích)", quantity: 16 },
+  { key: "third", label: "Third Prize (Giải Ba)", quantity: 8 },
+  { key: "second", label: "Second Prize (Giải Nhì)", quantity: 4 },
+  { key: "first", label: "First Prize (Giải Nhất)", quantity: 2 },
   { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
 ];
 
@@ -45,11 +45,29 @@ const LuckyDrawWheel = () => {
   const [currentPrizeIndex, setCurrentPrizeIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-
-  const spinAudio = useRef(new Audio("/sound2.mp3"));
+  const saveState = (state) => {
+    localStorage.setItem("lucky-draw-state", JSON.stringify(state));
+  };
+  const spinAudio = useRef(new Audio("sound2.mp3"));
 
   /* ===== LOAD EXCEL ===== */
   useEffect(() => {
+    const stored = localStorage.getItem("lucky-draw-state");
+
+    if (stored) {
+      const s = JSON.parse(stored);
+
+      setFullData(s.fullData || []);
+      setDisplayData(s.displayData || []);
+      setSpinPool(s.spinPool || []);
+      setWinnersByPrize(s.winnersByPrize || {});
+      setCurrentPrizeIndex(s.currentPrizeIndex ?? 0);
+      setHasStarted(s.hasStarted || false);
+      setIsFinished(s.isFinished || false);
+
+      console.log("✔ Loaded from localStorage");
+      return;
+    }
     fetch("/employees.xlsx")
       .then((res) => res.arrayBuffer())
       .then((buffer) => {
@@ -125,6 +143,7 @@ const LuckyDrawWheel = () => {
     spinAudio.current.currentTime = 0;
     spinAudio.current.play();
   };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Space hoặc Enter
@@ -138,15 +157,88 @@ const LuckyDrawWheel = () => {
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      };
-    }, [mustSpin, handleSpinClick]);
+    };
+  }, [mustSpin, handleSpinClick]);
+
+  useEffect(() => {
+    if (fullData.length === 0) return;
+
+    const state = {
+      fullData,
+      displayData,
+      spinPool,
+      winnersByPrize,
+      currentPrizeIndex,
+      hasStarted,
+      isFinished,
+    };
+
+    localStorage.setItem("lucky-draw-state", JSON.stringify(state));
+    console.log("💾 Saved state", state);
+  }, [
+    fullData,
+    displayData,
+    spinPool,
+    winnersByPrize,
+    currentPrizeIndex,
+    hasStarted,
+    isFinished
+  ]);
+
+  const handleReset = () => {
+    if (!window.confirm("Bạn có chắc muốn RESET toàn bộ kết quả không?")) return;
+
+    localStorage.removeItem("lucky-draw-state");
+
+    // Load lại Excel từ đầu
+    fetch("/employees.xlsx")
+      .then(res => res.arrayBuffer())
+      .then(buffer => {
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        const formatted = jsonData
+          .map((row) => ({
+            code:
+              row.code ||
+              row.Code ||
+              row["Mã nhân viên"] ||
+              row["ID"] ||
+              "",
+            name:
+              row.name ||
+              row.Name ||
+              row["Họ tên"] ||
+              "",
+          }))
+          .filter((x) => x.code && x.name);
+
+        setFullData(formatted);
+        setSpinPool(formatted);
+
+        const shuffled = [...formatted].sort(() => Math.random() - 0.5);
+        setDisplayData(shuffled.slice(0, 150));
+      });
+
+    // Reset toàn bộ state
+    setWinnersByPrize({});
+    setCurrentPrizeIndex(0);
+    setHasStarted(false);
+    setIsFinished(false);
+    setWinner(null);
+    setShowPopup(false);
+    setMustSpin(false);
+
+    alert("🔄 Reset thành công!");
+  };
 
   const wheelData = displayData.map((i) => ({ option: i.code }));
 
   return (
     <>
       <div className="blur-overlay"></div>
-      
+
       <div className="main-container">
         <div className="lucky-draw-layout">
           {/* ================= WHEEL ================= */}
@@ -199,41 +291,42 @@ const LuckyDrawWheel = () => {
                   }}
                   onStopSpinning={() => {
                     setMustSpin(false);
-
+                   
                     const prize = PRIZES[currentPrizeIndex];
-                    const result = spinPool[prizeNumber];
-                    if (!result || !prize) return;
 
-                    setWinner(result);
+                    // 🎯 LẤY NGƯỜI TRÚNG CHUẨN XÁC (từ pool quay)
+                    const winnerItem = spinPool[prizeNumber];
+                    if (!winnerItem) return;
+
+                    setWinner(winnerItem);
                     setShowPopup(true);
 
-                    // ✅ LƯU KẾT QUẢ THEO GIẢI
-                    setWinnersByPrize((prev) => {
-                      const list = prev[prize.key] || [];
-                      return {
-                        ...prev,
-                        [prize.key]: [...list, result],
-                      };
-                    });
+                    // 🎉 LƯU NGƯỜI TRÚNG THEO GIẢI
+                    setWinnersByPrize((prev) => ({
+                      ...prev,
+                      [prize.key]: [...(prev[prize.key] || []), winnerItem],
+                    }));
 
-                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH
-                    setDisplayData((prev) =>
-                      prev.filter((_, i) => i !== prizeNumber)
-                    );
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI POOL QUAY
+                    setSpinPool((prev) => prev.filter((p) => p.code !== winnerItem.code));
 
-                    // ===== 👇 CHỐT LOGIC GIẢI Ở ĐÂY 👇 =====
-                    const count =
-                      (winnersByPrize[prize.key]?.length || 0) + 1;
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH DISPLAY
+                    setDisplayData((prev) => prev.filter((p) => p.code !== winnerItem.code));
 
-                    // 🔒 GIẢI ĐẶC BIỆT → KẾT THÚC
-                    if (prize.key === "special" && count >= prize.quantity) {
+                    // ❌ LOẠI NGƯỜI TRÚNG KHỎI DANH SÁCH GỐC
+                    setFullData((prev) => prev.filter((p) => p.code !== winnerItem.code));
+
+                    // 🎯 KIỂM TRA ĐÃ ĐỦ SỐ NGƯỜI CỦA GIẢI HIỆN TẠI CHƯA?
+                    const awarded = (winnersByPrize[prize.key]?.length || 0) + 1;
+
+                    // 👉 Nếu giải cuối (special) → kết thúc
+                    if (prize.key === "special" && awarded >= prize.quantity) {
                       setIsFinished(true);
-                      setCurrentPrizeIndex(null); // không còn giải
                       return;
                     }
 
-                    // 👉 CHƯA PHẢI GIẢI CUỐI → SANG GIẢI TIẾP
-                    if (count >= prize.quantity) {
+                    // 👉 Nếu đủ số lượng giải → chuyển sang giải tiếp theo
+                    if (awarded >= prize.quantity) {
                       setCurrentPrizeIndex((i) => i + 1);
                     }
 
@@ -249,9 +342,8 @@ const LuckyDrawWheel = () => {
               <div className="wheel-center-circle level-3d">
                 <div className="wheel-center-ring">
                   <div
-                    className={`wheel-center-core ${
-                      PRIZE_COLOR_CLASS[currentPrize?.key] || ""
-                    }`}
+                    className={`wheel-center-core ${PRIZE_COLOR_CLASS[currentPrize?.key] || ""
+                      }`}
                   >
                     <div className="wheel-center-text-wrap">
                       {!hasStarted ? (
@@ -284,34 +376,37 @@ const LuckyDrawWheel = () => {
 
           {/* ================= RESULT ================= */}
           <div className="result-panel">
+        
             <h3>📋 Lucky Draw Results</h3>
-
+  <button className="reset-btn" onClick={handleReset}>
+            🔄 
+          </button>
             {PRIZE_DISPLAY_ORDER.map((key) => {
-                const p = PRIZES.find(prize => prize.key === key);
-                if (!p) return null;
+              const p = PRIZES.find(prize => prize.key === key);
+              if (!p) return null;
 
-                return (
-                  <div key={p.key} style={{ marginBottom: 20 }}>
-                    <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
-                      🏆 {p.label} ({p.quantity})
-                    </h4>
+              return (
+                <div key={p.key} style={{ marginBottom: 20 }}>
+                  <h4 style={{ color: "#1f3c88", marginBottom: 6 }}>
+                    🏆 {p.label} ({p.quantity})
+                  </h4>
 
-                    {(!winnersByPrize[p.key] ||
-                      winnersByPrize[p.key].length === 0) && (
+                  {(!winnersByPrize[p.key] ||
+                    winnersByPrize[p.key].length === 0) && (
                       <p className="empty-text">None</p>
                     )}
 
-                    {winnersByPrize[p.key]?.map((w, i) => (
-                      <div
-                        key={i}
-                        style={{ fontSize: 15, padding: "6px 0" }}
-                      >
-                        {i + 1}. {w.code} – {w.name}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+                  {winnersByPrize[p.key]?.map((w, i) => (
+                    <div
+                      key={i}
+                      style={{ fontSize: 15, padding: "6px 0" }}
+                    >
+                      {i + 1}. {w.code} – {w.name}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
 
           </div>
         </div>
