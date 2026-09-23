@@ -1,70 +1,108 @@
-# Getting Started with Create React App
+# HTIT Lucky Draw
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Vòng quay may mắn cho sự kiện **Year End Voyage – HAIPHONG PORT TIL (HTIT)**.
+Ứng dụng React (Create React App), chạy offline trên máy trình chiếu, giao diện
+theo bộ nhận diện thương hiệu HTIT.
 
-## Available Scripts
+## Chạy
 
-In the project directory, you can run:
+```bash
+npm install
+npm start
+```
 
-### `npm start`
+Mở http://localhost:3000. Build bản tĩnh: `npm run build`.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Thao tác khi trình chiếu
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+| Phím / thao tác | Tác dụng |
+| --- | --- |
+| `Space` / `Enter` / click vòng quay | Quay giải hiện tại |
+| `Esc` | Đóng popup người trúng hoặc bảng thiết lập |
+| `Ctrl` + `Shift` + `K` | Mở/đóng bảng thiết lập ẩn |
+| Nút ↻ góc bảng kết quả | Xoá toàn bộ kết quả đã quay và nạp lại danh sách |
 
-### `npm test`
+Vòng quay chạy tuần tự từ giải thấp lên giải cao. Người đã trúng bị loại khỏi
+các lượt sau. Kết quả được lưu vào `localStorage`, nên lỡ tải lại trang giữa sự
+kiện vẫn không mất.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Bảng thiết lập ẩn (`Ctrl` + `Shift` + `K`)
 
-### `npm run build`
+Không có nút nào trên màn hình, chỉ mở bằng phím tắt. Gồm 3 tab:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. Người tham gia
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Nạp từ file Excel bất kỳ trên máy (`.xlsx`, `.xls`, `.csv`).
+- Hoặc dán danh sách, mỗi dòng `mã<dấu phẩy hoặc tab hoặc khoảng trắng>họ tên`.
+- Nút *Dùng lại employees.xlsx* để quay về file gốc trong `public/`.
+- *Số ô trên vòng quay* (mặc định 150): số người được bốc ngẫu nhiên để vẽ vòng
+  quay cho đỡ rối khi danh sách dài. Người trúng luôn được đưa vào ô mà kim dừng.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Cột được nhận trong file Excel:
 
-### `npm run eject`
+| Nội dung | Tên cột chấp nhận |
+| --- | --- |
+| Mã nhân viên | `code`, `Code`, `Mã nhân viên`, `ID` |
+| Họ tên | `name`, `Name`, `Họ tên` |
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 2. Cơ cấu giải
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Sửa tên giải, số lượng, thứ tự quay (↑ ↓), thêm hoặc xoá giải, khôi phục mặc
+định. Danh sách xếp theo **thứ tự quay từ trên xuống**. Tên giải viết dạng
+`Tiếng Anh (Tiếng Việt)` — phần trong ngoặc hiển thị làm dòng phụ.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Mặc định: Khuyến khích 16 → Ba 8 → Nhì 4 → Nhất 2 → Đặc biệt 1.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 3. Đặt sẵn người trúng
 
-## Learn More
+Nhập trước mã nhân viên cho từng giải. Tới giải nào thì lấy lần lượt các mã của
+giải đó, hết mã thì quay ngẫu nhiên. Mã nhập vào được tra cứu ngay: hiện tên
+người, báo đỏ nếu sai mã hoặc người đó đã trúng giải khác, gạch ngang nếu vượt
+số lượng giải.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+> Đổi danh sách người hoặc cơ cấu giải khi đã quay dở sẽ xoá kết quả đã quay
+> (app hỏi xác nhận trước). Nên chốt hai tab này trước khi bắt đầu.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Dữ liệu lưu trên máy
 
-### Code Splitting
+Tất cả nằm trong `localStorage` của trình duyệt trên máy trình chiếu — hãy thiết
+lập trên đúng máy sẽ dùng.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+| Khoá | Nội dung | Nút ↻ có xoá không |
+| --- | --- | --- |
+| `lucky-draw-state` | Kết quả đã quay, danh sách còn lại | Có |
+| `lucky-draw-config` | Cơ cấu giải, số ô vòng quay | Không |
+| `lucky-draw-fixed` | Danh sách trúng đặt sẵn | Không |
 
-### Analyzing the Bundle Size
+## Bộ nhận diện
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Màu lấy mẫu trực tiếp từ logo HTIT, khai báo trong `src/LuckyDrawWheel.css`:
 
-### Making a Progressive Web App
+| Token | Mã màu |
+| --- | --- |
+| `--htit-blue` | `#406ab3` |
+| `--htit-blue-dark` | `#1f457f` |
+| `--htit-gold` | `#e6cb7a` |
+| `--htit-gold-dark` | `#cf8b2c` |
+| `--htit-ink` | `#231f20` |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Font **Barlow** (Google Fonts), trùng với wordmark "HAIPHONG PORT TIL". Nếu máy
+trình chiếu không có mạng, app tự lùi về Segoe UI.
 
-### Advanced Configuration
+## Cấu trúc
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```
+public/
+  employees.xlsx     # danh sách mặc định
+  brand/             # logo HTIT (bản chữ trắng và bản chữ đen)
+  back.png, sound2.mp3
+src/
+  App.js             # render LuckyDrawResevert
+  LuckyDrawResevert.js  # toàn bộ màn hình quay thưởng
+  LuckyDrawWheel.css    # giao diện + bộ nhận diện
+  LuckyDraw.js          # bản cũ quay xuôi, hiện không dùng
+```
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Vòng quay dùng [`react-custom-roulette`](https://www.npmjs.com/package/react-custom-roulette).
+Người trúng được chọn trước, sau đó kim được cho dừng đúng ô của người đó, nên
+mã hiện trên vòng quay luôn khớp với popup.
