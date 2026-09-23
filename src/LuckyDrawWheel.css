@@ -445,11 +445,19 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   margin: 0 -0.5em;
   padding: 0 0.5em;
   display: flex;
   flex-direction: column;
   gap: 0.75em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-list {
+    scroll-behavior: auto;
+  }
 }
 
 .result-list::-webkit-scrollbar {
@@ -1160,4 +1168,90 @@ kbd {
 .admin-btn.danger {
   border-color: rgba(255, 130, 130, 0.45);
   color: #ffb3b3;
+}
+
+/* ===============================
+   👥 DANH SÁCH NGƯỜI THAM GIA
+   (bảng thiết lập → tab Người tham gia)
+================================ */
+.roster-search {
+  margin-top: 0.6em;
+}
+
+.roster-list {
+  list-style: none;
+  margin: 0.6em 0 0;
+  padding: 0.3em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+
+  /* Danh sách dài → cuộn trong khung, không kéo dài cả bảng thiết lập */
+  max-height: 16em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0.6em;
+  background: rgba(8, 26, 54, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.roster-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.roster-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.roster-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.3em 0.55em;
+  border-radius: 0.45em;
+  font-size: 0.92em;
+}
+
+.roster-list li:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.roster-idx {
+  min-width: 2.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.45;
+  font-size: 0.85em;
+}
+
+.roster-code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
+.roster-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-prize {
+  flex-shrink: 0;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  font-size: 0.75em;
+  letter-spacing: 0.04em;
+  color: var(--htit-gold);
+  border: 1px solid color-mix(in srgb, var(--htit-gold) 55%, transparent);
+}
+
+.roster-list li.is-won .roster-name,
+.roster-list li.is-won .roster-code {
+  opacity: 0.45;
+  text-decoration: line-through;
 }

@@ -33,17 +33,21 @@ Không có nút nào trên màn hình, chỉ mở bằng phím tắt. Gồm 3 ta
 ### 1. Người tham gia
 
 - Nạp từ file Excel bất kỳ trên máy (`.xlsx`, `.xls`, `.csv`).
-- Hoặc dán danh sách, mỗi dòng `mã<dấu phẩy hoặc tab hoặc khoảng trắng>họ tên`.
+- Hoặc dán danh sách: mỗi dòng một họ tên, hoặc `mã<dấu phẩy / tab / khoảng
+  trắng>họ tên` nếu danh sách có mã.
 - Nút *Dùng lại employees.xlsx* để quay về file gốc trong `public/`.
 - *Số ô trên vòng quay* (mặc định 150): số người được bốc ngẫu nhiên để vẽ vòng
   quay cho đỡ rối khi danh sách dài. Người trúng luôn được đưa vào ô mà kim dừng.
 
 Cột được nhận trong file Excel:
 
-| Nội dung | Tên cột chấp nhận |
-| --- | --- |
-| Mã nhân viên | `code`, `Code`, `Mã nhân viên`, `ID` |
-| Họ tên | `name`, `Name`, `Họ tên` |
+| Nội dung | Tên cột chấp nhận | Bắt buộc |
+| --- | --- | --- |
+| Họ tên | `name`, `Name`, `Họ tên` | Có |
+| Mã nhân viên | `code`, `Code`, `Mã nhân viên`, `ID` | Không |
+
+File chỉ có cột họ tên vẫn chạy được: app tự sinh mã ẩn (`#1`, `#2`…) để phân
+biệt hai người trùng tên, vòng quay và bảng kết quả khi đó chỉ hiển thị họ tên.
 
 ### 2. Cơ cấu giải
 
@@ -55,10 +59,10 @@ Mặc định: Khuyến khích 16 → Ba 8 → Nhì 4 → Nhất 2 → Đặc bi
 
 ### 3. Đặt sẵn người trúng
 
-Nhập trước mã nhân viên cho từng giải. Tới giải nào thì lấy lần lượt các mã của
-giải đó, hết mã thì quay ngẫu nhiên. Mã nhập vào được tra cứu ngay: hiện tên
-người, báo đỏ nếu sai mã hoặc người đó đã trúng giải khác, gạch ngang nếu vượt
-số lượng giải.
+Mỗi dòng một **họ tên** (hoặc mã nhân viên nếu danh sách có mã). Tới giải nào
+thì lấy lần lượt các dòng của giải đó, hết thì quay ngẫu nhiên. Dòng nhập vào
+được tra cứu ngay: hiện tên người, báo đỏ nếu không tìm thấy hoặc người đó đã
+trúng giải khác, gạch ngang nếu vượt số lượng giải.
 
 > Đổi danh sách người hoặc cơ cấu giải khi đã quay dở sẽ xoá kết quả đã quay
 > (app hỏi xác nhận trước). Nên chốt hai tab này trước khi bắt đầu.
