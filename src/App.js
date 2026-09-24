@@ -1,5 +1,4 @@
 import React from "react";
-import LuckyDraw from "./LuckyDraw";
 import LuckyDrawRevert from  "./LuckyDrawResevert";
 
 function App() {
