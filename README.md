@@ -23,14 +23,14 @@ Mở http://localhost:3000. Build bản tĩnh: `npm run build`.
 | Nút ↻ góc bảng kết quả | Xoá toàn bộ kết quả đã quay và nạp lại danh sách |
 
 Vòng quay chạy tuần tự từ giải thấp lên giải cao. Người đã trúng bị loại khỏi
-các lượt sau.
+các lượt sau. Kết quả được lưu vào `localStorage`, nên lỡ tải lại trang giữa sự
+kiện vẫn không mất.
 
 - Bảng bên phải chỉ hiện **giải đang quay**. Quay xong người cuối của một giải
   thì bảng vẫn giữ danh sách giải đó, bấm quay tiếp mới chuyển sang giải kế.
 - Quay xong giải cuối và đóng popup → **bảng tổng kết** toàn màn hình tự hiện,
   liệt kê người trúng của mọi giải. `Esc` để đóng; mở lại bằng nút *Final
-  Results* ở bảng bên phải hoặc bấm `Space`. Kết quả được lưu vào `localStorage`, nên lỡ tải lại trang giữa sự
-kiện vẫn không mất.
+  Results* ở bảng bên phải hoặc bấm `Space`.
 
 ## Bảng thiết lập ẩn (`Ctrl` + `Shift` + `K`)
 
@@ -41,7 +41,7 @@ Không có nút nào trên màn hình, chỉ mở bằng phím tắt. Gồm 3 ta
 - Nạp từ file Excel bất kỳ trên máy (`.xlsx`, `.xls`, `.csv`).
 - Hoặc dán danh sách: mỗi dòng một họ tên, hoặc `mã<dấu phẩy / tab / khoảng
   trắng>họ tên` nếu danh sách có mã.
-- Nút *Dùng lại employees.xlsx* để quay về file gốc trong `public/`.
+- Nút *Nạp lại public/employees.xlsx* để quay về file gốc trong `public/`.
 - *Số ô trên vòng quay* (mặc định 150): số người được bốc ngẫu nhiên để vẽ vòng
   quay cho đỡ rối khi danh sách dài. Người trúng luôn được đưa vào ô mà kim dừng.
 
