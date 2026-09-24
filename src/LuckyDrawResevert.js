@@ -30,10 +30,15 @@ const PRIZE_PALETTE = ["#e6cb7a", "#cf8b2c", "#6f97db", "#a9c1ea", "#c9d3e3"];
 
 const CONFIG_KEY = "lucky-draw-config";
 
+/* Bản sửa trong app được lưu kèm "phiên bản" của cơ cấu mặc định lúc sửa.
+   Đổi DEFAULT_PRIZES trong code rồi deploy → bản lưu cũ (dựa trên mặc định cũ)
+   tự bị bỏ, mọi trình duyệt dùng cơ cấu mới thay vì kẹt ở bản sửa cũ. */
+const PRIZES_VERSION = JSON.stringify(DEFAULT_PRIZES);
+
 const loadConfig = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(CONFIG_KEY));
-    if (saved?.prizes?.length) {
+    if (saved?.prizes?.length && saved.basedOn === PRIZES_VERSION) {
       return {
         prizes: saved.prizes,
         displayCount: saved.displayCount || DEFAULT_DISPLAY_COUNT,
@@ -118,6 +123,13 @@ const FIXED_KEY = "lucky-draw-fixed";
      Buffer.from(JSON.stringify({ third: "Tên A\nTên B", ... })).toString("base64") */
 const DEFAULT_FIXED_B64 =
   "eyJzcGVjaWFsIjoiTmd1eeG7hW4gVGhhbmggVMO5bmcgKENPU0NPKSIsImZpcnN0IjoiUGjhuqFtIFBow7pjIMSQ4bqhdCIsInNlY29uZCI6IkLDuWkgTmd1ecOqbiBLaMO0aVxuQsO5aSBWxINuIEjGsG5nIiwidGhpcmQiOiJQaOG6oW0gSOG7k25nIE3huqFuaCAoQXJtc3Ryb25nKVxuTml1IExpanVuXG5OZ3V54buFbiDEkMO0biBI4bqhbmgifQ==";
+
+// Lưu danh sách đặt sẵn kèm dấu của bản mặc định hiện tại (xem PRIZES_VERSION)
+const FIXED_BASE_KEY = "lucky-draw-fixed-base";
+const saveFixed = (obj) => {
+  localStorage.setItem(FIXED_KEY, JSON.stringify(obj));
+  localStorage.setItem(FIXED_BASE_KEY, DEFAULT_FIXED_B64);
+};
 
 const defaultFixed = () => {
   try {
@@ -293,8 +305,12 @@ const LuckyDrawWheel = () => {
   const [fixedText, setFixedText] = useState(() => {
     try {
       const saved = localStorage.getItem(FIXED_KEY);
-      // Chưa từng lưu trên trình duyệt này → dùng danh sách mặc định trong code
-      return saved === null ? defaultFixed() : JSON.parse(saved) || {};
+      // Chưa từng lưu, hoặc lưu từ bản mặc định cũ → dùng danh sách trong code
+      const upToDate =
+        localStorage.getItem(FIXED_BASE_KEY) === DEFAULT_FIXED_B64;
+      return saved === null || !upToDate
+        ? defaultFixed()
+        : JSON.parse(saved) || {};
     } catch {
       return defaultFixed();
     }
@@ -738,7 +754,10 @@ const LuckyDrawWheel = () => {
   /* ===== BẢNG CẤU HÌNH: CƠ CẤU GIẢI ===== */
   const saveConfig = (next) => {
     setConfig(next);
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(next));
+    localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({ ...next, basedOn: PRIZES_VERSION })
+    );
   };
 
   const updatePrizes = (nextPrizes) => {
@@ -783,7 +802,7 @@ const LuckyDrawWheel = () => {
   const handleFixedChange = (key, value) => {
     const next = { ...fixedText, [key]: value };
     setFixedText(next);
-    localStorage.setItem(FIXED_KEY, JSON.stringify(next));
+    saveFixed(next);
   };
 
   // Tra cứu mã đã nhập trong bảng đặt sẵn để báo đúng/sai ngay khi gõ
@@ -1497,7 +1516,7 @@ const LuckyDrawWheel = () => {
                         return;
                       const next = defaultFixed();
                       setFixedText(next);
-                      localStorage.setItem(FIXED_KEY, JSON.stringify(next));
+                      saveFixed(next);
                     }}
                   >
                     Khôi phục mặc định
@@ -1510,7 +1529,7 @@ const LuckyDrawWheel = () => {
                       setFixedText({});
                       // Lưu "{}" thay vì xoá khoá: xoá khoá thì F5 lại hiện
                       // danh sách mặc định
-                      localStorage.setItem(FIXED_KEY, "{}");
+                      saveFixed({});
                     }}
                   >
                     Xoá danh sách đặt sẵn
