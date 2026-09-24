@@ -71,7 +71,9 @@ Sửa tên giải, số lượng, thứ tự quay (↑ ↓), thêm hoặc xoá g
 định. Danh sách xếp theo **thứ tự quay từ trên xuống**. Tên giải viết dạng
 `Tiếng Anh (Tiếng Việt)` — phần trong ngoặc hiển thị làm dòng phụ.
 
-Mặc định: Khuyến khích 16 → Ba 8 → Nhì 4 → Nhất 2 → Đặc biệt 1.
+Mặc định: Ba 3 → Nhì 2 → Nhất 1 → Đặc biệt 1 (7 giải). Sửa trong app chỉ lưu ở
+trình duyệt đang dùng; muốn áp dụng cho mọi máy / bản deploy thì sửa
+`DEFAULT_PRIZES` trong `src/LuckyDrawResevert.js`.
 
 ### 3. Đặt sẵn người trúng
 

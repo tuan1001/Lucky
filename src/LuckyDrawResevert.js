@@ -7,10 +7,9 @@ import "./LuckyDrawWheel.css";
 /* ===== CƠ CẤU GIẢI MẶC ĐỊNH (thứ tự quay: thấp → cao) =====
    Sửa được ngay trong app: Ctrl + Shift + K → tab "Cơ cấu giải" */
 const DEFAULT_PRIZES = [
-  { key: "bonus", label: "Consolation Prize (Khuyến Khích)", quantity: 16 },
-  { key: "third", label: "Third Prize (Giải Ba)", quantity: 8 },
-  { key: "second", label: "Second Prize (Giải Nhì)", quantity: 4 },
-  { key: "first", label: "First Prize (Giải Nhất)", quantity: 2 },
+  { key: "third", label: "Third Prize (Giải Ba)", quantity: 3 },
+  { key: "second", label: "Second Prize (Giải Nhì)", quantity: 2 },
+  { key: "first", label: "First Prize (Giải Nhất)", quantity: 1 },
   { key: "special", label: "Grand Prize (Giải Đặc Biệt)", quantity: 1 },
 ];
 
