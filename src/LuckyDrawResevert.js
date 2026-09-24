@@ -53,13 +53,22 @@ const withAutoCode = (list) =>
     .filter((x) => x.name)
     .map((x, i) => (x.code ? x : { ...x, code: "#" + (i + 1), autoCode: true }));
 
+// Tên trên vòng quay: "Mr. Benoit De Quillacq"
+const displayName = (p) =>
+  [p?.salutation, p?.name].filter(Boolean).join(" ");
+
+// Tên khi công bố người trúng: "Mr. Benoit De Quillacq - Managing Director Vietnam"
+const announceName = (p) =>
+  [displayName(p), p?.title].filter(Boolean).join(" - ");
+
 // So khớp một dòng người dùng gõ với mã HOẶC họ tên
 const matchesPerson = (person, token = "") => {
   const t = String(token).trim().toLowerCase();
   return (
     !!t &&
     (String(person.code).trim().toLowerCase() === t ||
-      String(person.name).trim().toLowerCase() === t)
+      String(person.name).trim().toLowerCase() === t ||
+      displayName(person).toLowerCase() === t)
   );
 };
 
@@ -154,24 +163,74 @@ const fitWheelText = (labels = []) => {
 /* "Vân tay" của một danh sách tham gia. Kết quả đã quay chỉ có ý nghĩa với đúng
    danh sách sinh ra nó — đổi file Excel thì vân tay đổi và kết quả cũ bị bỏ. */
 const rosterKeyOf = (list = []) =>
-  list.length + "|" + list.map((p) => p.code + "\t" + p.name).join("\n");
+  list.length +
+  "|" +
+  list
+    .map((p) => [p.code, p.name, p.salutation, p.title].join("\t"))
+    .join("\n");
 
 const splitLabel = (label = "") => {
   const [en, vi = ""] = label.split("(");
   return { en: en.trim(), vi: vi.replace(")", "").trim() };
 };
 
+/* ===== ĐỌC FILE EXCEL =====
+   Tên cột so khớp không phân biệt hoa thường / dấu / khoảng trắng,
+   vd. "Nam/ Nữ", "nam/nữ", "NAM NU" đều là cột danh xưng. */
+const normalizeHeader = (h = "") =>
+  String(h)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const COLUMN_ALIASES = {
+  code: ["code", "id", "ma", "manhanvien", "msnv", "manv"],
+  name: ["name", "fullname", "ten", "hoten", "hovaten"],
+  salutation: ["namnu", "gioitinh", "danhxung", "salutation", "gender"],
+  title: ["chucdanh", "chucvu", "position", "jobtitle", "title"],
+};
+
+// "Nam" → "Mr.", "Nữ" → "Ms.", "mr" → "Mr."…; giá trị khác giữ nguyên
+const SALUTATIONS = {
+  nam: "Mr.",
+  mr: "Mr.",
+  nu: "Ms.",
+  ms: "Ms.",
+  mrs: "Mrs.",
+  miss: "Miss",
+  dr: "Dr.",
+};
+const normalizeSalutation = (v = "") => {
+  const raw = String(v).trim();
+  return SALUTATIONS[normalizeHeader(raw)] || raw;
+};
+
 const parseEmployees = (buffer) => {
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json(sheet);
+  const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+  // Cột nào trong file ứng với trường nào
+  const headers = Object.keys(jsonData[0] || {});
+  const colOf = (field) =>
+    headers.find((h) => COLUMN_ALIASES[field].includes(normalizeHeader(h)));
+  const cols = {
+    code: colOf("code"),
+    name: colOf("name"),
+    salutation: colOf("salutation"),
+    title: colOf("title"),
+  };
+  const cell = (row, field) =>
+    cols[field] ? String(row[cols[field]] ?? "").trim() : "";
 
   return withAutoCode(
     jsonData.map((row) => ({
-      code: String(
-        row.code || row.Code || row["Mã nhân viên"] || row["ID"] || ""
-      ).trim(),
-      name: String(row.name || row.Name || row["Họ tên"] || "").trim(),
+      code: cell(row, "code"),
+      name: cell(row, "name"),
+      salutation: normalizeSalutation(cell(row, "salutation")),
+      title: cell(row, "title"),
     }))
   );
 };
@@ -194,6 +253,10 @@ const LuckyDrawWheel = () => {
   const [currentPrizeIndex, setCurrentPrizeIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  /* Giải đang hiện ở bảng bên phải. Quay xong người cuối của một giải thì vẫn
+     giữ bảng giải đó (để khán giả xem đủ danh sách) tới khi bấm quay tiếp. */
+  const [panelPrizeKey, setPanelPrizeKey] = useState(null);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Bảng cấu hình ẩn (Ctrl + Shift + K): người tham gia / cơ cấu giải / đặt sẵn
   const [showAdmin, setShowAdmin] = useState(false);
@@ -202,6 +265,10 @@ const LuckyDrawWheel = () => {
   const [pasteText, setPasteText] = useState("");
   const [rosterSearch, setRosterSearch] = useState("");
   const [rosterName, setRosterName] = useState("employees.xlsx");
+  /* Nguồn danh sách: "public" = file public/employees.xlsx của project (tự đối
+     chiếu lại mỗi lần mở trang), "upload" = file chọn từ máy, "paste" = dán tay.
+     Hai nguồn sau là bản chụp tại lúc nạp, sửa file gốc không tự cập nhật. */
+  const [rosterSource, setRosterSource] = useState("public");
   const [rosterKey, setRosterKey] = useState("");
   // Đo chữ trước khi font Barlow tải xong sẽ lệch → đo lại khi font sẵn sàng
   const [fontsReady, setFontsReady] = useState(false);
@@ -237,13 +304,19 @@ const LuckyDrawWheel = () => {
     setDisplayData(shuffled.slice(0, config.displayCount));
   };
 
-  const loadEmployees = () =>
-    fetch("/employees.xlsx")
+  // no-store: luôn đọc bản mới nhất trên đĩa, không dùng bản trình duyệt đã cache
+  const fetchPublicRoster = () =>
+    fetch("/employees.xlsx", { cache: "no-store" })
       .then((res) => res.arrayBuffer())
-      .then((buffer) => {
-        applyRoster(parseEmployees(buffer));
-        setRosterName("employees.xlsx");
-      });
+      .then(parseEmployees);
+
+  const loadEmployees = () =>
+    fetchPublicRoster().then((list) => {
+      applyRoster(list);
+      setRosterName("employees.xlsx");
+      setRosterSource("public");
+      return list;
+    });
 
   useEffect(() => {
     if (document.fonts?.ready) {
@@ -272,11 +345,21 @@ const LuckyDrawWheel = () => {
       setHasStarted(s.hasStarted || false);
       setIsFinished(s.isFinished || false);
       setRosterName(s.rosterName || "employees.xlsx");
+      setRosterSource(source);
       setRosterKey(s.rosterKey || "");
     };
 
-    // Danh sách nạp tay từ bảng thiết lập → không đụng tới, giữ nguyên
-    if ((s.rosterName || "employees.xlsx") !== "employees.xlsx") {
+    // Bản lưu cũ chưa có rosterSource → suy ra từ tên như trước
+    const source =
+      s.rosterSource ||
+      ((s.rosterName || "employees.xlsx") === "employees.xlsx"
+        ? "public"
+        : "upload");
+
+    // Danh sách tải lên / dán tay → giữ nguyên, không bị file trong project đè.
+    // (Trước đây file tải lên tên "employees.xlsx" bị nhầm là file của project
+    //  và bị thay bằng public/employees.xlsx sau khi F5.)
+    if (source !== "public") {
       restore();
       return;
     }
@@ -284,10 +367,8 @@ const LuckyDrawWheel = () => {
     /* Đối chiếu danh sách đã lưu với file employees.xlsx hiện tại:
        - giống nhau  → khôi phục kết quả (lỡ F5 giữa sự kiện không mất gì)
        - đã đổi file → kết quả cũ thuộc danh sách cũ nên bỏ, quay lại từ đầu */
-    fetch("/employees.xlsx")
-      .then((res) => res.arrayBuffer())
-      .then((buffer) => {
-        const list = parseEmployees(buffer);
+    fetchPublicRoster()
+      .then((list) => {
         if (rosterKeyOf(list) === s.rosterKey) {
           restore();
           return;
@@ -295,12 +376,19 @@ const LuckyDrawWheel = () => {
         clearResults();
         applyRoster(list);
         setRosterName("employees.xlsx");
+        setRosterSource("public");
         showToast(`📋 employees.xlsx đã đổi → nạp lại ${list.length} người`);
       })
       .catch(restore); // đọc file lỗi → dùng lại danh sách đã lưu
+    // Chỉ chạy một lần khi mở trang
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentPrize = prizes[currentPrizeIndex];
+  const shownPrize =
+    prizes.find((p) => p.key === panelPrizeKey) ||
+    currentPrize ||
+    prizes[prizes.length - 1];
   const currentLabel = splitLabel(currentPrize?.label);
   const currentAwarded = winnersByPrize[currentPrize?.key]?.length || 0;
   const totalWinners = Object.values(winnersByPrize).reduce(
@@ -351,6 +439,12 @@ const LuckyDrawWheel = () => {
     fire();
   }, [showPopup]);
 
+  /* ===== BẢNG TỔNG KẾT =====
+     Quay xong giải cuối → đóng popup người trúng là bảng tổng kết tự hiện. */
+  useEffect(() => {
+    if (isFinished && !showPopup) setShowSummary(true);
+  }, [isFinished, showPopup]);
+
   /* ===== TỰ CUỘN TỚI GIẢI ĐANG QUAY =====
      Không dùng scrollIntoView: nó cuộn mọi khung cha cuộn được (cả trang), nên
      mỗi lượt quay là bảng kết quả lại giật lung tung. Ở đây chỉ cuộn đúng khung
@@ -360,7 +454,7 @@ const LuckyDrawWheel = () => {
        chưa giãn hết, phần tử vẫn "nằm trong tầm nhìn" và sẽ không cuộn gì. */
     const timer = setTimeout(() => {
       const wrap = resultListRef.current;
-      const card = prizeCardRefs.current[currentPrize?.key];
+      const card = prizeCardRefs.current[shownPrize?.key];
       if (!wrap || !card) return;
 
       // Ưu tiên đưa dòng người vừa trúng vào tầm nhìn; chưa có ai thì cả thẻ
@@ -384,7 +478,7 @@ const LuckyDrawWheel = () => {
     }, 550);
 
     return () => clearTimeout(timer);
-  }, [currentPrize?.key, totalWinners]);
+  }, [shownPrize?.key, totalWinners]);
 
   /* ===== NGƯỜI TRÚNG ĐẶT SẴN =====
      Ưu tiên mã đã đặt cho giải hiện tại (nếu người đó còn trong pool),
@@ -406,11 +500,12 @@ const LuckyDrawWheel = () => {
     if (mustSpin || spinPool.length === 0) return;
     // 🔒 ĐÃ QUAY XONG TOÀN BỘ
     if (isFinished) {
-      showToast("🎉 All prizes have been drawn!");
+      setShowSummary(true);
       return;
     }
 
     setHasStarted(true);
+    setPanelPrizeKey(null);
 
     // 🎯 Chọn người trúng từ pool, đảm bảo vòng quay dừng đúng ô của người đó
     const picked = pickWinner(prizes[currentPrizeIndex]);
@@ -445,6 +540,7 @@ const LuckyDrawWheel = () => {
 
     setWinner(winnerItem);
     setWinnerPrizeKey(prize.key);
+    setPanelPrizeKey(prize.key);
     setShowPopup(true);
 
     // 🎉 LƯU NGƯỜI TRÚNG THEO GIẢI
@@ -483,6 +579,7 @@ const LuckyDrawWheel = () => {
       if (e.key === "Escape") {
         setShowAdmin(false);
         setShowPopup(false);
+        setShowSummary(false);
         return;
       }
       // Đang gõ trong bảng đặt sẵn → không quay
@@ -512,6 +609,7 @@ const LuckyDrawWheel = () => {
       hasStarted,
       isFinished,
       rosterName,
+      rosterSource,
       rosterKey,
     };
 
@@ -525,6 +623,7 @@ const LuckyDrawWheel = () => {
     hasStarted,
     isFinished,
     rosterName,
+    rosterSource,
     rosterKey,
   ]);
 
@@ -543,6 +642,8 @@ const LuckyDrawWheel = () => {
     setWinner(null);
     setShowPopup(false);
     setMustSpin(false);
+    setPanelPrizeKey(null);
+    setShowSummary(false);
 
     showToast("🔄 Reset thành công!");
   };
@@ -550,6 +651,8 @@ const LuckyDrawWheel = () => {
   /* ===== BẢNG CẤU HÌNH: NGƯỜI THAM GIA ===== */
   const clearResults = () => {
     localStorage.removeItem("lucky-draw-state");
+    setPanelPrizeKey(null);
+    setShowSummary(false);
     setWinnersByPrize({});
     setCurrentPrizeIndex(0);
     setHasStarted(false);
@@ -574,14 +677,26 @@ const LuckyDrawWheel = () => {
     file.arrayBuffer().then((buffer) => {
       const list = parseEmployees(buffer);
       if (list.length === 0) {
-        showToast("⚠️ Không đọc được cột họ tên trong file này");
+        showToast("⚠️ Không thấy cột Tên / Họ tên trong file này");
         return;
       }
       clearResults();
       applyRoster(list);
       setRosterName(file.name);
+      setRosterSource("upload");
       showToast(`✅ Đã nạp ${list.length} người từ ${file.name}`);
     });
+  };
+
+  // Nạp lại file public/employees.xlsx của project (vd. vừa sửa & lưu file)
+  const handleReloadPublic = () => {
+    if (!confirmIfStarted()) return;
+    clearResults();
+    loadEmployees()
+      .then((list) =>
+        showToast(`✅ Đã nạp lại ${list.length} người từ employees.xlsx`)
+      )
+      .catch(() => showToast("⚠️ Không đọc được public/employees.xlsx"));
   };
 
   const handlePasteRoster = () => {
@@ -595,6 +710,7 @@ const LuckyDrawWheel = () => {
     clearResults();
     applyRoster(list);
     setRosterName("danh sách dán tay");
+    setRosterSource("paste");
     setPasteText("");
     showToast(`✅ Đã nạp ${list.length} người`);
   };
@@ -653,14 +769,16 @@ const LuckyDrawWheel = () => {
   // Tra cứu mã đã nhập trong bảng đặt sẵn để báo đúng/sai ngay khi gõ
   const lookupCode = (code, prizeKey) => {
     const inPool = spinPool.find((p) => matchesPerson(p, code));
-    if (inPool) return { status: "ok", name: inPool.name };
+    if (inPool) return { status: "ok", name: displayName(inPool) };
 
     const drawnEntry = Object.entries(winnersByPrize).find(([, list]) =>
       list.some((w) => matchesPerson(w, code))
     );
     if (drawnEntry) {
       const prize = prizes.find((p) => p.key === drawnEntry[0]);
-      const name = drawnEntry[1].find((w) => matchesPerson(w, code))?.name;
+      const name = displayName(
+        drawnEntry[1].find((w) => matchesPerson(w, code))
+      );
       return {
         status: drawnEntry[0] === prizeKey ? "done" : "taken",
         name,
@@ -672,7 +790,7 @@ const LuckyDrawWheel = () => {
 
   // Danh sách không có mã → hiển thị luôn họ tên trên ô vòng quay
   const wheelData = displayData.map((i) => ({
-    option: i.autoCode ? i.name : i.code,
+    option: i.autoCode ? displayName(i) : i.code,
   }));
 
   /* Danh sách người tham gia cho bảng thiết lập: giữ nguyên thứ tự gốc trong
@@ -692,14 +810,17 @@ const LuckyDrawWheel = () => {
       const q = rosterSearch.trim().toLowerCase();
       if (!q) return true;
       return (
-        person.name.toLowerCase().includes(q) ||
+        announceName(person).toLowerCase().includes(q) ||
         (!person.autoCode && String(person.code).toLowerCase().includes(q))
       );
     });
 
   // Cỡ chữ + vị trí chữ tính lại mỗi khi danh sách (hoặc font) đổi
   const wheelText = useMemo(
-    () => fitWheelText(displayData.map((p) => (p.autoCode ? p.name : p.code))),
+    () =>
+      fitWheelText(
+        displayData.map((p) => (p.autoCode ? displayName(p) : p.code))
+      ),
     [displayData, fontsReady] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const hubColor = isFinished
@@ -806,7 +927,7 @@ const LuckyDrawWheel = () => {
                   alt="Haiphong Port TIL"
                   className="result-logo"
                 />
-                <div className="result-eyebrow">Year End Voyage 2025</div>
+                <div className="result-eyebrow">HTIT Customer Conference 2026</div>
                 <h3>Lucky Draw Results</h3>
               </div>
               <button
@@ -828,14 +949,6 @@ const LuckyDrawWheel = () => {
             </header>
 
             <div className="result-stats">
-              <div className="stat">
-                <span className="stat-label">Drawn</span>
-                <span className="stat-value">{totalWinners}</span>
-              </div>
-              <div className="stat">
-                <span className="stat-label">Remaining</span>
-                <span className="stat-value">{spinPool.length}</span>
-              </div>
               <div className="stat stat-wide" style={{ "--prize": hubColor }}>
                 <span className="stat-label">Now drawing</span>
                 <span className="stat-value stat-prize">
@@ -845,7 +958,7 @@ const LuckyDrawWheel = () => {
             </div>
 
             <div className="result-list" ref={resultListRef}>
-              {prizesTopDown.map((p) => {
+              {[shownPrize].filter(Boolean).map((p) => {
                 const label = splitLabel(p.label);
                 const list = winnersByPrize[p.key] || [];
                 const isActive = !isFinished && currentPrize?.key === p.key;
@@ -890,7 +1003,15 @@ const LuckyDrawWheel = () => {
                             {!w.autoCode && (
                               <span className="winner-code">{w.code}</span>
                             )}
-                            <span className="winner-name">{w.name}</span>
+                            <span className="winner-name">
+                              {displayName(w)}
+                              {w.title && (
+                                <span className="winner-title">
+                                  {" "}
+                                  - {w.title}
+                                </span>
+                              )}
+                            </span>
                           </li>
                         ))}
                       </ol>
@@ -900,13 +1021,99 @@ const LuckyDrawWheel = () => {
               })}
             </div>
 
-            <footer className="result-hint">
-              Press <kbd>Space</kbd> / <kbd>Enter</kbd> or click the wheel to
-              spin
-            </footer>
+            {isFinished && (
+              <footer className="result-hint">
+                <button
+                  className="summary-open-btn"
+                  onClick={() => setShowSummary(true)}
+                >
+                  🏆 Final Results · Bảng tổng kết
+                </button>
+              </footer>
+            )}
           </aside>
         </div>
       </div>
+
+      {/* ================= BẢNG TỔNG KẾT ================= */}
+      {showSummary && (
+        <div className="summary-overlay" onClick={() => setShowSummary(false)}>
+          <div className="summary" onClick={(e) => e.stopPropagation()}>
+            <header className="summary-head">
+              <img
+                src="/brand/logo-htit-white.png"
+                alt="Haiphong Port TIL"
+                className="summary-logo"
+              />
+              <div className="summary-eyebrow">
+                HTIT Customer Conference 2026
+              </div>
+              <h2>Lucky Draw · Final Results</h2>
+              <div className="summary-sub">Kết quả chung cuộc</div>
+              <button
+                className="admin-close summary-close"
+                onClick={() => setShowSummary(false)}
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div
+              className="summary-grid"
+              style={{
+                // Các giải ít người (≤ 4 suất) chia đều một hàng; giải đông trải ngang
+                "--cols": Math.max(
+                  1,
+                  prizesTopDown.filter((p) => p.quantity <= 4).length
+                ),
+              }}
+            >
+              {prizesTopDown.map((p) => {
+                const label = splitLabel(p.label);
+                const list = winnersByPrize[p.key] || [];
+                return (
+                  <section
+                    key={p.key}
+                    className={`summary-card ${p.quantity > 4 ? "wide" : ""}`}
+                    style={{ "--prize": prizeColor(p.key) }}
+                  >
+                    <div className="summary-card-head">
+                      <span className="prize-dot" />
+                      <div className="prize-title">
+                        <div className="summary-prize-en">{label.en}</div>
+                        <div className="prize-vi">{label.vi}</div>
+                      </div>
+                      <span className="prize-badge">
+                        {list.length}/{p.quantity}
+                      </span>
+                    </div>
+                    {list.length === 0 ? (
+                      <p className="empty-text">No winners</p>
+                    ) : (
+                      <ol className="summary-list">
+                        {list.map((w, i) => (
+                          <li key={w.code} title={announceName(w)}>
+                            <span className="winner-idx">{i + 1}</span>
+                            <span className="summary-name">
+                              {displayName(w)}
+                              {w.title && (
+                                <span className="summary-title">
+                                  {w.title}
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= POPUP ================= */}
       {showPopup && winner && (
@@ -922,13 +1129,15 @@ const LuckyDrawWheel = () => {
               {popupLabel.en}
               {popupLabel.vi && <span> · {popupLabel.vi}</span>}
             </div>
-            <p className="popup-winner">{winner.name}</p>
+            <p className="popup-winner">
+              {displayName(winner)}
+              {winner.title && (
+                <span className="popup-title">{winner.title}</span>
+              )}
+            </p>
             {!winner.autoCode && (
               <div className="popup-code">{winner.code}</div>
             )}
-            <div className="popup-hint">
-              Press <kbd>Space</kbd> to spin again · <kbd>Esc</kbd> to close
-            </div>
           </div>
         </div>
       )}
@@ -971,8 +1180,20 @@ const LuckyDrawWheel = () => {
                 <p className="admin-note">
                   Danh sách hiện tại: <b>{spinPool.length}</b> người còn trong
                   vòng quay / <b>{totalWinners}</b> đã trúng · nguồn:{" "}
-                  <b>{rosterName}</b>
+                  <b>
+                    {rosterSource === "public"
+                      ? "public/employees.xlsx (file trong project)"
+                      : rosterSource === "upload"
+                      ? `${rosterName} (file tải lên)`
+                      : rosterName}
+                  </b>
                 </p>
+                {rosterSource !== "public" && (
+                  <p className="admin-note admin-warn">
+                    Danh sách này là bản chụp lúc nạp. Sửa file gốc trên máy
+                    xong phải chọn lại file bên dưới thì mới cập nhật.
+                  </p>
+                )}
 
                 <div className="admin-item">
                   <label>
@@ -1002,7 +1223,15 @@ const LuckyDrawWheel = () => {
                           {!person.autoCode && (
                             <span className="roster-code">{person.code}</span>
                           )}
-                          <span className="roster-name">{person.name}</span>
+                          <span className="roster-name">
+                            {displayName(person)}
+                            {person.title && (
+                              <span className="roster-title">
+                                {" "}
+                                - {person.title}
+                              </span>
+                            )}
+                          </span>
                           {wonLabel && (
                             <span className="roster-prize">{wonLabel}</span>
                           )}
@@ -1016,8 +1245,8 @@ const LuckyDrawWheel = () => {
                   <label>
                     <span className="admin-item-title">Nạp từ file Excel</span>
                     <span className="admin-item-sub">
-                      Cột tên: name / Họ tên (bắt buộc) · cột mã: code / Mã
-                      nhân viên / ID (có thể bỏ trống)
+                      Cột Tên / Họ tên (bắt buộc) · Nam/ Nữ (Mr./Ms. hoặc
+                      Nam/Nữ) · Chức danh · Mã nhân viên (đều có thể bỏ trống)
                     </span>
                   </label>
                   <div className="admin-row">
@@ -1026,8 +1255,8 @@ const LuckyDrawWheel = () => {
                       accept=".xlsx,.xls,.csv"
                       onChange={handleRosterFile}
                     />
-                    <button className="admin-btn" onClick={loadEmployees}>
-                      Dùng lại employees.xlsx
+                    <button className="admin-btn" onClick={handleReloadPublic}>
+                      Nạp lại public/employees.xlsx
                     </button>
                   </div>
                 </div>

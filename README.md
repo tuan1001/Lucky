@@ -1,6 +1,6 @@
 # HTIT Lucky Draw
 
-Vòng quay may mắn cho sự kiện **Year End Voyage – HAIPHONG PORT TIL (HTIT)**.
+Vòng quay may mắn cho sự kiện **HTIT Customer Conference 2026 – HAIPHONG PORT TIL (HTIT)**.
 Ứng dụng React (Create React App), chạy offline trên máy trình chiếu, giao diện
 theo bộ nhận diện thương hiệu HTIT.
 
@@ -23,7 +23,13 @@ Mở http://localhost:3000. Build bản tĩnh: `npm run build`.
 | Nút ↻ góc bảng kết quả | Xoá toàn bộ kết quả đã quay và nạp lại danh sách |
 
 Vòng quay chạy tuần tự từ giải thấp lên giải cao. Người đã trúng bị loại khỏi
-các lượt sau. Kết quả được lưu vào `localStorage`, nên lỡ tải lại trang giữa sự
+các lượt sau.
+
+- Bảng bên phải chỉ hiện **giải đang quay**. Quay xong người cuối của một giải
+  thì bảng vẫn giữ danh sách giải đó, bấm quay tiếp mới chuyển sang giải kế.
+- Quay xong giải cuối và đóng popup → **bảng tổng kết** toàn màn hình tự hiện,
+  liệt kê người trúng của mọi giải. `Esc` để đóng; mở lại bằng nút *Final
+  Results* ở bảng bên phải hoặc bấm `Space`. Kết quả được lưu vào `localStorage`, nên lỡ tải lại trang giữa sự
 kiện vẫn không mất.
 
 ## Bảng thiết lập ẩn (`Ctrl` + `Shift` + `K`)
@@ -43,8 +49,18 @@ Cột được nhận trong file Excel:
 
 | Nội dung | Tên cột chấp nhận | Bắt buộc |
 | --- | --- | --- |
-| Họ tên | `name`, `Name`, `Họ tên` | Có |
-| Mã nhân viên | `code`, `Code`, `Mã nhân viên`, `ID` | Không |
+| Họ tên | `Tên`, `Họ tên`, `name` | Có |
+| Danh xưng | `Nam/ Nữ`, `Giới tính`, `Danh xưng` — giá trị `Mr.` / `Ms.` / `Mrs.` hoặc `Nam` / `Nữ` | Không |
+| Chức danh | `Chức danh`, `Chức vụ`, `Position`, `Title` | Không |
+| Mã nhân viên | `Mã nhân viên`, `Mã`, `MSNV`, `code`, `ID` | Không |
+
+Tên cột không phân biệt hoa thường, dấu hay khoảng trắng (`Nam/ Nữ` = `nam/nữ`).
+`Nam` tự đổi thành `Mr.`, `Nữ` thành `Ms.`.
+
+Cách hiển thị:
+
+- Trên vòng quay: `Mr. Benoit De Quillacq`
+- Khi công bố người trúng (popup, bảng kết quả): `Mr. Benoit De Quillacq - Managing Director Vietnam`
 
 File chỉ có cột họ tên vẫn chạy được: app tự sinh mã ẩn (`#1`, `#2`…) để phân
 biệt hai người trùng tên, vòng quay và bảng kết quả khi đó chỉ hiển thị họ tên.
@@ -99,9 +115,10 @@ trình chiếu không có mạng, app tự lùi về Segoe UI.
 public/
   employees.xlsx     # danh sách mặc định
   brand/             # logo HTIT (bản chữ trắng và bản chữ đen)
-  back.png, sound2.mp3
+  sound2.mp3
 src/
   App.js             # render LuckyDrawResevert
+  backdrop-2026.webp  # nền sự kiện (ảnh backdrop không chữ)
   LuckyDrawResevert.js  # toàn bộ màn hình quay thưởng
   LuckyDrawWheel.css    # giao diện + bộ nhận diện
   LuckyDraw.js          # bản cũ quay xuôi, hiện không dùng
