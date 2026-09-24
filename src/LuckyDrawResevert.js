@@ -111,6 +111,25 @@ const POINTER_SRC = `data:image/svg+xml;utf8,${encodeURIComponent(
 
 // Danh sách trúng đặt sẵn: mỗi dòng (hoặc ngăn bởi , ;) là một mã HOẶC một họ tên
 const FIXED_KEY = "lucky-draw-fixed";
+
+/* Danh sách đặt sẵn mặc định (dùng khi trình duyệt chưa lưu danh sách riêng).
+   Lưu dạng base64 để mở code / file JS ra không đọc thẳng được tên người —
+   chỉ là che mắt, không phải bảo mật. Tạo lại chuỗi này bằng Node:
+     Buffer.from(JSON.stringify({ third: "Tên A\nTên B", ... })).toString("base64") */
+const DEFAULT_FIXED_B64 =
+  "eyJzcGVjaWFsIjoiTmd1eeG7hW4gVGhhbmggVMO5bmcgKENPU0NPKSIsImZpcnN0IjoiUGjhuqFtIFBow7pjIMSQ4bqhdCIsInNlY29uZCI6IkLDuWkgTmd1ecOqbiBLaMO0aVxuQsO5aSBWxINuIEjGsG5nIiwidGhpcmQiOiJQaOG6oW0gSOG7k25nIE3huqFuaCAoQXJtc3Ryb25nKVxuTml1IExpanVuXG5OZ3V54buFbiDEkMO0biBI4bqhbmgifQ==";
+
+const defaultFixed = () => {
+  try {
+    const bytes = Uint8Array.from(atob(DEFAULT_FIXED_B64), (c) =>
+      c.charCodeAt(0)
+    );
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return {};
+  }
+};
+
 const parseCodes = (text = "") =>
   text
     .split(/[\n,;]+/)
@@ -273,9 +292,11 @@ const LuckyDrawWheel = () => {
   const [fontsReady, setFontsReady] = useState(false);
   const [fixedText, setFixedText] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(FIXED_KEY)) || {};
+      const saved = localStorage.getItem(FIXED_KEY);
+      // Chưa từng lưu trên trình duyệt này → dùng danh sách mặc định trong code
+      return saved === null ? defaultFixed() : JSON.parse(saved) || {};
     } catch {
-      return {};
+      return defaultFixed();
     }
   });
 
@@ -1468,17 +1489,33 @@ const LuckyDrawWheel = () => {
                 <kbd>Esc</kbd> để đóng
               </span>
               {adminTab === "fixed" && (
-                <button
-                  className="admin-clear"
-                  onClick={() => {
-                    if (!window.confirm("Xoá toàn bộ danh sách đặt sẵn?"))
-                      return;
-                    setFixedText({});
-                    localStorage.removeItem(FIXED_KEY);
-                  }}
-                >
-                  Xoá danh sách đặt sẵn
-                </button>
+                <span className="admin-row" style={{ marginTop: 0 }}>
+                  <button
+                    className="admin-btn"
+                    onClick={() => {
+                      if (!window.confirm("Thay bằng danh sách đặt sẵn mặc định?"))
+                        return;
+                      const next = defaultFixed();
+                      setFixedText(next);
+                      localStorage.setItem(FIXED_KEY, JSON.stringify(next));
+                    }}
+                  >
+                    Khôi phục mặc định
+                  </button>
+                  <button
+                    className="admin-clear"
+                    onClick={() => {
+                      if (!window.confirm("Xoá toàn bộ danh sách đặt sẵn?"))
+                        return;
+                      setFixedText({});
+                      // Lưu "{}" thay vì xoá khoá: xoá khoá thì F5 lại hiện
+                      // danh sách mặc định
+                      localStorage.setItem(FIXED_KEY, "{}");
+                    }}
+                  >
+                    Xoá danh sách đặt sẵn
+                  </button>
+                </span>
               )}
             </footer>
           </div>

@@ -82,6 +82,11 @@ thì lấy lần lượt các dòng của giải đó, hết thì quay ngẫu nh
 được tra cứu ngay: hiện tên người, báo đỏ nếu không tìm thấy hoặc người đó đã
 trúng giải khác, gạch ngang nếu vượt số lượng giải.
 
+Danh sách đặt sẵn **mặc định** nằm trong code (`DEFAULT_FIXED_B64` trong
+`src/LuckyDrawResevert.js`, mã hoá base64 để không đọc thẳng được tên — chỉ là
+che mắt, không phải bảo mật). Trình duyệt chưa từng lưu danh sách riêng sẽ dùng
+danh sách này; nút *Khôi phục mặc định* ở tab này nạp lại nó.
+
 > Đổi danh sách người hoặc cơ cấu giải khi đã quay dở sẽ xoá kết quả đã quay
 > (app hỏi xác nhận trước). Nên chốt hai tab này trước khi bắt đầu.
 
